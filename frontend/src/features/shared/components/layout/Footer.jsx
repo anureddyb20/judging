@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { RotateCcw, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 
-export function Footer() {
+export default function Footer() {
   const { resetToDefaultData, eventSettings } = useDataStore();
 
   return (
@@ -67,5 +67,3 @@ export function Footer() {
     </footer>
   );
 }
-
-export default Footer;

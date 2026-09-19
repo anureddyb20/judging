@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { useDataStore } from '@/lib/dataStore';
 import { computeAdminTelemetry, computeLeaderboard } from '@/lib/scoring';
-import TerminalHeader from '@/components/layout/TerminalHeader';
 import { 
   Users, 
   UserCheck, 
@@ -12,17 +11,16 @@ import {
   Award, 
   Activity, 
   Sliders, 
-  Radio, 
+  Download, 
   ArrowRight, 
-  TrendingUp, 
-  ShieldAlert, 
   CheckCircle2,
   Lock,
   Unlock,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  ClipboardList
 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const { 
@@ -30,181 +28,226 @@ export default function AdminDashboard() {
     judges, 
     assignments, 
     evaluations, 
-    submissions, 
     eventSettings, 
     updateEventSettings,
-    auditLogs,
     missions,
-    rubrics 
+    rubrics,
+    showToast 
   } = useDataStore();
 
-  const telemetry = computeAdminTelemetry(teams, judges, assignments, evaluations, submissions);
+  const telemetry = computeAdminTelemetry(teams, judges, assignments, evaluations, teams.map(t => t.submission));
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
   const rankedLeaderboard = computeLeaderboard(teams, evaluations, activeRubric?.criteria, eventSettings.scoring_method);
-
   const activeJudges = judges.filter(j => j.is_active);
 
+  // Export Master Scorecard CSV
+  const handleExportCSV = () => {
+    let csv = 'Rank,Team Code,Team Name,Track,Room,Pitch Slot,';
+    activeJudges.forEach(j => {
+      csv += `${j.name} (${j.judge_code}),`;
+    });
+    csv += 'Aggregate Final Score (/100)\n';
+
+    rankedLeaderboard.forEach(t => {
+      const mission = missions.find(m => m.id === t.mission_id);
+      let row = `${t.rank},"${t.team_code}","${t.name}","${mission?.title || ''}","${t.room || ''}","${t.pitch_slot || ''}",`;
+      activeJudges.forEach(j => {
+        const ev = evaluations.find(e => e.judge_id === j.id && e.team_id === t.id);
+        row += ev && !ev.is_draft ? `${ev.total_score},` : '-,';
+      });
+      row += `${t.score.toFixed(1)}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ideathon_master_scores_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Master evaluation scorecard downloaded', 'success');
+  };
+
   return (
-    <div className="space-y-6">
-      <TerminalHeader
-        title="COMMAND CENTER TELEMETRY"
-        subtitle="Real-time multi-agent heist control, live scoring aggregation, and syndicate status."
-        badgeText="ROOT COMMAND HUD"
-        badgeColor="pink"
-        actions={
-          <div className="flex items-center gap-2">
-            <Link href="/admin/settings" className="rockstar-btn rockstar-btn-outline text-xs py-2 px-3">
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Event Controls</span>
-            </Link>
-            <Link href="/admin/announcements" className="rockstar-btn rockstar-btn-pink text-xs py-2 px-3">
-              <Radio className="w-3.5 h-3.5" />
-              <span>Broadcast Alert</span>
-            </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Top Header */}
+      <div className="clean-card p-6 border border-indigo-500/20 bg-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="badge-indigo">ADMIN LEAD CONTROLS</span>
+            <span className="text-xs font-mono text-slate-400">Master Event Orchestration</span>
           </div>
-        }
-      />
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Ideathon Command & Scoring Overview
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Monitor all room evaluations in real time, configure rubrics, and manage round transitions.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+          <button
+            onClick={handleExportCSV}
+            className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Export CSV Scores</span>
+          </button>
+          <Link href="/admin/rubrics" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Rubric Builder</span>
+          </Link>
+        </div>
+      </div>
 
       {/* Top 4 Telemetry Stat Widgets */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-        <div className="bracket-corners rockstar-card p-4 border border-zinc-800 bg-zinc-950/80">
-          <div className="text-[10px] text-zinc-500 uppercase flex items-center justify-between">
-            <span>REGISTERED SQUADS</span>
-            <Users className="w-3.5 h-3.5 text-yellow-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="clean-card p-5 bg-slate-900/90 space-y-1">
+          <div className="text-[11px] font-mono text-slate-400 uppercase font-semibold flex items-center justify-between">
+            <span>REGISTERED TEAMS</span>
+            <Users className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-3xl font-black text-white mt-1">
-            {telemetry.totalTeams}
+          <div className="text-2xl sm:text-3xl font-bold text-white mt-1">
+            {teams.length}
           </div>
-          <div className="text-[10px] text-zinc-400 mt-1">
-            {telemetry.totalSubmissions} Project Blueprint(s)
-          </div>
-        </div>
-
-        <div className="bracket-corners rockstar-card p-4 border border-zinc-800 bg-zinc-950/80">
-          <div className="text-[10px] text-zinc-500 uppercase flex items-center justify-between">
-            <span>SYNDICATE JUDGES</span>
-            <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-          </div>
-          <div className="text-3xl font-black text-white mt-1">
-            {telemetry.totalJudges}
-          </div>
-          <div className="text-[10px] text-cyan-400 mt-1">
-            {activeJudges.length} Active in Enclave
+          <div className="text-[11px] text-slate-400">
+            Across {missions.length} problem tracks
           </div>
         </div>
 
-        <div className="bracket-corners rockstar-card p-4 border border-zinc-800 bg-zinc-950/80">
-          <div className="text-[10px] text-zinc-500 uppercase flex items-center justify-between">
-            <span>JUDGING COMPLETION</span>
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="clean-card p-5 bg-slate-900/90 space-y-1">
+          <div className="text-[11px] font-mono text-slate-400 uppercase font-semibold flex items-center justify-between">
+            <span>PANEL JUDGES</span>
+            <UserCheck className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-3xl font-black text-emerald-400 mt-1">
-            {telemetry.completionRate}%
+          <div className="text-2xl sm:text-3xl font-bold text-white mt-1">
+            {judges.length}
           </div>
-          <div className="text-[10px] text-zinc-400 mt-1">
-            {telemetry.completedAssignments} / {telemetry.totalAssignments} Reviews Done
+          <div className="text-[11px] text-emerald-400">
+            {activeJudges.length} Active on Duty
           </div>
         </div>
 
-        <div className="bracket-corners rockstar-card p-4 border border-zinc-800 bg-zinc-950/80">
-          <div className="text-[10px] text-zinc-500 uppercase flex items-center justify-between">
-            <span>AVERAGE MARK</span>
-            <Award className="w-3.5 h-3.5 text-yellow-400" />
+        <div className="clean-card p-5 bg-slate-900/90 space-y-1">
+          <div className="text-[11px] font-mono text-slate-400 uppercase font-semibold flex items-center justify-between">
+            <span>EVALUATIONS DONE</span>
+            <Activity className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-3xl font-black text-yellow-400 mt-1">
-            {telemetry.averageScore}
+          <div className="text-2xl sm:text-3xl font-bold text-white mt-1">
+            {evaluations.filter(e => !e.is_draft).length}
           </div>
-          <div className="text-[10px] text-zinc-400 mt-1">
-            Peak: {telemetry.highestScore} / 100
+          <div className="text-[11px] text-slate-400">
+            {telemetry.pendingReviews} pending scorecards
+          </div>
+        </div>
+
+        <div className="clean-card p-5 bg-slate-900/90 space-y-1">
+          <div className="text-[11px] font-mono text-slate-400 uppercase font-semibold flex items-center justify-between">
+            <span>COMPLETION RATE</span>
+            <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div className="text-2xl sm:text-3xl font-bold text-indigo-400 mt-1">
+            {telemetry.completionPercentage}%
+          </div>
+          <div className="text-[11px] text-slate-400">
+            Overall progress
           </div>
         </div>
       </div>
 
-      {/* Quick Heist State Toggle Bar */}
-      <div className="bracket-corners rockstar-card p-4 border border-zinc-800 bg-black/80 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+      {/* Quick Visibility & Lock Controls Bar */}
+      <div className="clean-card p-5 bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[var(--lime)] animate-ping" />
-          <span className="text-zinc-300 font-bold uppercase">FAST EVENT TOGGLES:</span>
+          <span className="text-xs font-bold text-white uppercase tracking-wider">
+            Live Visibility Controls:
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Live Score Toggle */}
           <button
             onClick={() => updateEventSettings({ show_live_score: !eventSettings.show_live_score })}
-            className={`px-3 py-1.5 border rounded flex items-center gap-1.5 font-bold transition-all ${
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               eventSettings.show_live_score 
-                ? 'bg-emerald-950 text-emerald-300 border-emerald-700' 
-                : 'bg-zinc-900 text-zinc-500 border-zinc-700'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-slate-800 text-slate-400 border border-white/5'
             }`}
           >
             {eventSettings.show_live_score ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span>LIVE SCORES: {eventSettings.show_live_score ? 'VISIBLE' : 'HIDDEN'}</span>
+            <span>Live Score: {eventSettings.show_live_score ? 'Visible to Teams' : 'Hidden'}</span>
           </button>
 
+          {/* Leaderboard Toggle */}
           <button
             onClick={() => updateEventSettings({ show_leaderboard: !eventSettings.show_leaderboard })}
-            className={`px-3 py-1.5 border rounded flex items-center gap-1.5 font-bold transition-all ${
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               eventSettings.show_leaderboard 
-                ? 'bg-cyan-950 text-cyan-300 border-cyan-700' 
-                : 'bg-zinc-900 text-zinc-500 border-zinc-700'
+                ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' 
+                : 'bg-slate-800 text-slate-400 border border-white/5'
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>LEADERBOARD: {eventSettings.show_leaderboard ? 'PUBLIC' : 'MASKED'}</span>
+            <span>Leaderboard: {eventSettings.show_leaderboard ? 'Public' : 'Masked'}</span>
           </button>
 
+          {/* Results Lock Toggle */}
           <button
-            onClick={() => updateEventSettings({ submissions_locked: !eventSettings.submissions_locked })}
-            className={`px-3 py-1.5 border rounded flex items-center gap-1.5 font-bold transition-all ${
-              eventSettings.submissions_locked 
-                ? 'bg-red-950 text-red-300 border-red-700' 
-                : 'bg-zinc-900 text-zinc-400 border-zinc-700'
+            onClick={() => updateEventSettings({ results_locked: !eventSettings.results_locked })}
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              eventSettings.results_locked 
+                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' 
+                : 'bg-slate-800 text-slate-400 border border-white/5'
             }`}
           >
-            {eventSettings.submissions_locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-            <span>SUBMISSIONS: {eventSettings.submissions_locked ? 'LOCKED' : 'OPEN'}</span>
+            {eventSettings.results_locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            <span>Final Scores: {eventSettings.results_locked ? 'Locked' : 'Unlocked'}</span>
           </button>
         </div>
       </div>
 
-      {/* Live Judging Progress Matrix Grid */}
-      <div className="bracket-corners rockstar-card p-6 border border-zinc-800 bg-zinc-950/90 space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Master Real-Time Judge Evaluation Matrix */}
+      <div className="clean-card overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-white/5 bg-slate-950 flex items-center justify-between">
           <div>
-            <h3 className="font-heading font-black text-white text-lg">
-              LIVE JUDGING PROGRESS MATRIX
-            </h3>
-            <p className="font-mono text-xs text-zinc-400 mt-0.5">
-              Cross-examination telemetry of judges across all squads.
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              Master Judge Evaluation Matrix
+            </h2>
+            <p className="text-xs text-slate-400">
+              Live score cross-tabulation across all panel judges.
             </p>
           </div>
-          <Link href="/admin/assignments" className="text-xs font-mono font-bold text-yellow-400 hover:text-white flex items-center gap-1">
-            <span>Manage Matrix</span>
-            <ArrowRight className="w-3 h-3" />
-          </Link>
+          <span className="text-xs font-mono text-indigo-400">
+            Scoring Formula: {eventSettings.scoring_method.toUpperCase()}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs border border-zinc-800">
-            <thead className="bg-zinc-950 text-zinc-400 text-[11px] uppercase border-b border-zinc-800">
+          <table className="w-full text-left font-sans text-xs">
+            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-mono border-b border-white/5">
               <tr>
-                <th className="p-3">SQUAD</th>
+                <th className="p-3.5 w-16">RANK</th>
+                <th className="p-3.5">TEAM / SQUAD</th>
                 {activeJudges.map(judge => (
-                  <th key={judge.id} className="p-3 text-center">
-                    <div>{judge.name.split(' ')[0]}</div>
-                    <div className="text-[9px] text-zinc-500 font-normal">{judge.judge_code}</div>
+                  <th key={judge.id} className="p-3.5 text-center">
+                    <div>{judge.judge_code}</div>
+                    <div className="text-[9px] text-slate-500 font-sans font-normal truncate max-w-[100px]">{judge.name}</div>
                   </th>
                 ))}
-                <th className="p-3 text-right">AGGREGATE</th>
+                <th className="p-3.5 text-right font-bold text-indigo-400">AGGREGATE (/100)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900 bg-black/60">
+            <tbody className="divide-y divide-white/5 bg-slate-950/60">
               {teams.map(team => {
                 const teamLeaderboard = rankedLeaderboard.find(t => t.id === team.id);
                 return (
-                  <tr key={team.id} className="hover:bg-zinc-900/40">
-                    <td className="p-3 font-bold text-white">
-                      <div>{team.name}</div>
-                      <div className="text-[10px] text-zinc-500 font-normal">{team.team_code}</div>
+                  <tr key={team.id} className="hover:bg-white/[0.02]">
+                    <td className="p-3.5 font-mono font-bold text-slate-400">
+                      #{teamLeaderboard?.rank || '-'}
+                    </td>
+                    <td className="p-3.5">
+                      <div className="font-bold text-white text-sm">{team.name}</div>
+                      <div className="text-[11px] font-mono text-slate-400">{team.team_code} · {team.room}</div>
                     </td>
 
                     {activeJudges.map(judge => {
@@ -213,7 +256,7 @@ export default function AdminDashboard() {
 
                       if (!assignment) {
                         return (
-                          <td key={judge.id} className="p-3 text-center text-zinc-700">
+                          <td key={judge.id} className="p-3.5 text-center text-slate-600 font-mono">
                             -
                           </td>
                         );
@@ -221,9 +264,9 @@ export default function AdminDashboard() {
 
                       if (evalRecord && !evalRecord.is_draft) {
                         return (
-                          <td key={judge.id} className="p-3 text-center">
-                            <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded font-bold">
-                              {evalRecord.total_score}
+                          <td key={judge.id} className="p-3.5 text-center">
+                            <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded font-mono font-bold">
+                              {evalRecord.total_score.toFixed(1)}
                             </span>
                           </td>
                         );
@@ -231,8 +274,8 @@ export default function AdminDashboard() {
 
                       if (evalRecord && evalRecord.is_draft) {
                         return (
-                          <td key={judge.id} className="p-3 text-center">
-                            <span className="px-2 py-0.5 bg-amber-950 text-amber-400 border border-amber-800 rounded">
+                          <td key={judge.id} className="p-3.5 text-center">
+                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-[10px] font-mono">
                               DRAFT
                             </span>
                           </td>
@@ -240,15 +283,15 @@ export default function AdminDashboard() {
                       }
 
                       return (
-                        <td key={judge.id} className="p-3 text-center">
-                          <span className="px-2 py-0.5 bg-zinc-900 text-zinc-500 border border-zinc-800 rounded text-[10px]">
+                        <td key={judge.id} className="p-3.5 text-center">
+                          <span className="px-2 py-0.5 bg-slate-900 text-slate-500 border border-white/5 rounded text-[10px] font-mono">
                             PENDING
                           </span>
                         </td>
                       );
                     })}
 
-                    <td className="p-3 text-right font-black text-yellow-400 text-sm">
+                    <td className="p-3.5 text-right font-mono font-bold text-base text-indigo-400">
                       {teamLeaderboard ? teamLeaderboard.score.toFixed(1) : '0.0'}
                     </td>
                   </tr>
@@ -256,35 +299,6 @@ export default function AdminDashboard() {
               })}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Security & Audit Trail Snippet */}
-      <div className="bracket-corners rockstar-card p-5 border border-zinc-800 bg-zinc-950/80 space-y-3">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-red-400" />
-            <span className="font-heading font-black text-white text-sm">
-              RECENT AUDIT EVENTS
-            </span>
-          </div>
-          <Link href="/admin/audit" className="text-xs font-mono text-zinc-400 hover:text-white">
-            View Full Trail &gt;
-          </Link>
-        </div>
-
-        <div className="space-y-2 font-mono text-xs">
-          {auditLogs.slice(0, 4).map(log => (
-            <div key={log.id} className="flex items-center justify-between p-2 bg-black/50 border border-zinc-900 text-zinc-300">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 text-yellow-300 font-bold">
-                  {log.action}
-                </span>
-                <span className="text-zinc-400 text-[11px]">{log.user_email}</span>
-              </div>
-              <span className="text-[10px] text-zinc-500">{formatDate(log.created_at)}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

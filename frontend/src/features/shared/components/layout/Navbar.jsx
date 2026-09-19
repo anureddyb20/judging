@@ -17,7 +17,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 
-export function Navbar() {
+export default function Navbar() {
   const pathname = usePathname();
   const { currentUser, logout, eventSettings } = useDataStore();
 
@@ -35,7 +35,6 @@ export function Navbar() {
     { name: 'Live Leaderboard', href: '/leaderboard' },
     { name: 'Problem Tracks', href: '/missions' },
     { name: 'Guidelines & Rubrics', href: '/rules' },
-    { name: 'Timeline', href: '/schedule' },
   ];
 
   return (
@@ -118,5 +117,3 @@ export function Navbar() {
     </header>
   );
 }
-
-export default Navbar;

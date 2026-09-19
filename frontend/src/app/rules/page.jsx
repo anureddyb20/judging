@@ -2,96 +2,101 @@
 
 import React from 'react';
 import Link from 'next/link';
-import TerminalHeader from '@/components/layout/TerminalHeader';
-import { ShieldCheck, CheckCircle2, Terminal, ArrowRight, BookOpen } from 'lucide-react';
+import { useDataStore } from '@/lib/dataStore';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 
-export default function RulesPage() {
-  const directives = [
-    {
-      title: 'CREW COMPOSITION & ELIGIBILITY',
-      points: [
-        'Squads must consist of 2 to 4 active operatives from recognized institutions.',
-        'Cross-disciplinary teams are strongly encouraged across software, hardware, and design specializations.',
-        'Every squad must designate one Lead Architect operative responsible for final submission authorization.'
-      ]
-    },
-    {
-      title: 'INTELLECTUAL PROPERTY & CODE AUTHENTICITY',
-      points: [
-        'All core prototype code, circuit schematics, and simulation models must be authored during the hackathon period.',
-        'Open-source libraries, pretrained model weights (e.g. HuggingFace, YOLO), and cloud APIs are permitted provided they are fully disclosed in the tech stack breakdown.',
-        'Direct plagiarism or submission of preexisting turnkey commercial code results in immediate disqualification.'
-      ]
-    },
-    {
-      title: 'SUBMISSION PROTOCOLS',
-      points: [
-        'Final submissions must include: Project Title, Problem Statement, Architectural Solution, Live Demo URL or Video Walkthrough, GitHub Repository, and PDF Pitch Deck.',
-        'Once the submission window expires, the repository telemetry and file uploads are permanently locked by Admin Command.',
-        'Hardware tracks (Robotics, VLSI, Embedded IoT) must provide live workbench proof-of-concept videos or simulation traces.'
-      ]
-    },
-    {
-      title: 'JUDGING CRITERIA & MARKS AGGREGATION',
-      points: [
-        'Each assigned squad is reviewed independently by up to 3 Syndicate Judges across 5 distinct rubric criteria (20 marks each, 100 total).',
-        'Official final scores are computed using configured statistical aggregation (Average / Weighted Average).',
-        'In the event of ties, prototype execution and technical feasibility scores serve as secondary determinators.'
-      ]
-    }
-  ];
+export default function GuidelinesPage() {
+  const { rubrics } = useDataStore();
+  const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 cyber-grid-bg">
-      <TerminalHeader
-        title="HEIST BLUEPRINT & RULES"
-        subtitle="Official operational regulations, code authenticity rules, and judging criteria for VICEVERSE 2026."
-        badgeText="HEIST DIRECTIVES"
-        badgeColor="yellow"
-      />
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
+      <Navbar />
 
-      <div className="space-y-6">
-        {directives.map((dir, idx) => (
-          <div
-            key={idx}
-            className="bracket-corners rockstar-card p-6 border border-zinc-800 bg-zinc-950/90 font-mono text-xs space-y-4"
-          >
-            <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-              <span className="tag-yellow text-[10px]">DIRECTIVE 0{idx + 1}</span>
-              <h2 className="font-heading font-black text-white text-base sm:text-lg">
-                {dir.title}
-              </h2>
-            </div>
-
-            <ul className="space-y-2.5">
-              {dir.points.map((pt, pIdx) => (
-                <li key={pIdx} className="flex items-start gap-2.5 text-zinc-300">
-                  <CheckCircle2 className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{pt}</span>
-                </li>
-              ))}
-            </ul>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-3xl mb-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-1 text-xs font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
+              OFFICIAL HANDBOOK
+            </span>
+            <span className="text-xs text-slate-400">Ideathon Judging Standards</span>
           </div>
-        ))}
-      </div>
-
-      <div className="bracket-corners rockstar-card p-8 border border-[var(--border-pink)] bg-gradient-to-r from-pink-950/20 via-black to-black text-center space-y-4 font-mono text-xs">
-        <h3 className="text-xl font-heading font-black text-white">
-          READY TO INFILTRATE THE SYSTEM?
-        </h3>
-        <p className="text-zinc-400 max-w-md mx-auto">
-          Authenticate your credentials at the terminal, inspect assigned missions, and submit your project blueprint.
-        </p>
-        <div className="flex justify-center gap-3 pt-2">
-          <Link href="/login" className="rockstar-btn text-xs py-3 px-6">
-            <Terminal className="w-4 h-4" />
-            ENTER HEIST TERMINAL
-          </Link>
-          <Link href="/missions" className="rockstar-btn rockstar-btn-outline text-xs py-3 px-6">
-            INSPECT MISSIONS
-          </Link>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Rules, Guidelines & Rubrics
+          </h1>
+          <p className="text-sm text-slate-400 mt-2">
+            All teams and judges must adhere to these scoring standards and code of conduct throughout the event.
+          </p>
         </div>
-      </div>
+
+        {/* 100-pt Rubric Standards */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 mb-10 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <span className="text-xs font-mono text-indigo-400 uppercase tracking-wider">Evaluation Rubric Matrix</span>
+              <h2 className="text-2xl font-bold text-white mt-1">{activeRubric?.title} (100 Marks Total)</h2>
+            </div>
+            <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold rounded-lg self-start sm:self-auto">
+              ✓ Active Official Rubric
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {activeRubric?.criteria.map((criterion, idx) => (
+              <div key={criterion.id} className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-slate-800 text-indigo-400 flex items-center justify-center text-xs font-mono">
+                      {idx + 1}
+                    </span>
+                    {criterion.name}
+                  </h3>
+                  <span className="text-xs font-mono font-bold px-2.5 py-1 bg-indigo-950/60 text-indigo-300 border border-indigo-800/40 rounded">
+                    {criterion.max_points} Points Max
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">{criterion.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pitch Rules & Timeline Format */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
+              <span className="font-mono font-bold">5m</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Strict Pitch Time Limit</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Teams have exactly 5 minutes for their uninterrupted presentation and live prototype walkthrough. Room coordinators will enforce time limits.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
+              <span className="font-mono font-bold">3m</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Jury Q&A Chamber</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Judges have 3 minutes for technical scrutiny, architecture verification, and questions before submitting marks on the digital judging portal.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+              <span className="font-mono font-bold">100%</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Originality & Fair Play</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              All code and design assets must be developed during the hackathon or declared beforehand in the team repository. Plagiarism results in instant disqualification.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

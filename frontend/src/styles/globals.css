@@ -1,54 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,600;0,700;1,700&family=JetBrains+Mono:wght@300;400;500;700;800&family=Montserrat:ital,wght@0,700;0,800;0,900;1,900&family=Outfit:wght@400;600;700;800;900&family=Syne:wght@700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* GTA VI Core Palette (Vice City Neon Dusk) */
-  --vice-pink: #FF007F;
-  --vice-magenta: #FF2A85;
-  --vice-hotpink: #FF0055;
-  --vice-cyan: #00F0FF;
-  --vice-aqua: #00E5FF;
-  --vice-gold: #FFB800;
-  --vice-tangerine: #FF8A00;
-  --vice-lime: #39FF14;
-  --vice-purple: #8B00FF;
-  --vice-violet: #BD00FF;
+  --bg-main: #090d16;
+  --bg-surface: #111827;
+  --bg-card: #151e2e;
+  --bg-card-hover: #1c283d;
 
-  --primary: #FF007F;
-  --primary-glow: rgba(255, 0, 127, 0.45);
-  --primary-subtle: rgba(255, 0, 127, 0.12);
-
-  --accent: #00F0FF;
-  --accent-glow: rgba(0, 240, 255, 0.45);
-
-  --gold: #FFB800;
-  --gold-glow: rgba(255, 184, 0, 0.45);
-
-  /* Backgrounds */
-  --bg-black: #05010C;
-  --bg-dark: #0B0416;
-  --bg-surface: #120826;
-  --bg-card: rgba(22, 11, 46, 0.85);
-  --bg-card-hover: rgba(36, 16, 74, 0.95);
-
-  /* Borders */
   --border-dim: rgba(255, 255, 255, 0.08);
-  --border-pink: rgba(255, 0, 127, 0.35);
-  --border-cyan: rgba(0, 240, 255, 0.35);
-  --border-gold: rgba(255, 184, 0, 0.35);
-  --border-purple: rgba(139, 0, 255, 0.4);
+  --border-accent: rgba(99, 102, 241, 0.35);
 
-  --text-main: #ffffff;
-  --text-dim: #c4b5fd;
-  --text-muted: #8b7ca8;
+  --brand-primary: #6366f1;
+  --brand-secondary: #8b5cf6;
+  --brand-cyan: #06b6d4;
+  --brand-emerald: #10b981;
+  --brand-amber: #f59e0b;
 
-  --font-heading: 'Montserrat', 'Syne', sans-serif;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-tech: 'Chakra Petch', sans-serif;
-  --font-sans: 'Outfit', sans-serif;
 }
 
 * {
@@ -58,12 +34,11 @@
 }
 
 html, body {
-  background-color: var(--bg-black);
+  background-color: var(--bg-main);
   background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 0, 127, 0.18), transparent),
-    radial-gradient(ellipse 60% 40% at 85% 60%, rgba(0, 240, 255, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 15% 80%, rgba(139, 0, 255, 0.15), transparent),
-    linear-gradient(180deg, #05010C 0%, #0B0416 50%, #030008 100%);
+    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 50% 30% at 90% 80%, rgba(139, 92, 246, 0.08), transparent),
+    linear-gradient(180deg, #090d16 0%, #0c121e 100%);
   background-attachment: fixed;
   color: var(--text-main);
   font-family: var(--font-sans);
@@ -72,414 +47,252 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom GTA VI Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #070210;
+  background: #090d16;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--vice-pink), var(--vice-cyan));
-  border-radius: 4px;
+  background: #1e293b;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--vice-magenta), var(--vice-tangerine));
+  background: var(--brand-primary);
 }
 
-/* Rockstar & GTA Typography */
-h1, h2, h3, h4, .font-heading {
-  font-family: var(--font-heading);
-  letter-spacing: -0.02em;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.font-mono {
-  font-family: var(--font-mono);
-}
-
-.font-tech {
-  font-family: var(--font-tech);
-}
-
-/* Glow Utilities */
-.text-glow-pink {
-  text-shadow: 0 0 10px rgba(255, 0, 127, 0.8), 0 0 25px rgba(255, 0, 127, 0.5);
-}
-
-.text-glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 25px rgba(0, 240, 255, 0.5);
-}
-
-.text-glow-gold {
-  text-shadow: 0 0 10px rgba(255, 184, 0, 0.8), 0 0 25px rgba(255, 184, 0, 0.5);
-}
-
-.text-glow-sunset {
-  background: linear-gradient(135deg, #FF007F 0%, #FF8A00 50%, #00F0FF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 16px rgba(255, 0, 127, 0.4));
-}
-
-.text-vice-gradient {
-  background: linear-gradient(135deg, #FF007F 0%, #FF6B00 60%, #FFB800 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* GTA VI Glass Cards */
-.rockstar-card {
+/* Elegant Cards */
+.clean-card {
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-dim);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  position: relative;
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.rockstar-card:hover {
-  border-color: rgba(255, 0, 127, 0.5);
-  background: var(--bg-card-hover);
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 0, 127, 0.25);
-  transform: translateY(-2px);
+.clean-card:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 
-.vice-card-pink {
-  border-color: rgba(255, 0, 127, 0.35);
-  background: linear-gradient(180deg, rgba(255, 0, 127, 0.08) 0%, rgba(18, 8, 38, 0.9) 100%);
-}
-.vice-card-pink:hover {
-  border-color: var(--vice-pink);
-  box-shadow: 0 0 30px rgba(255, 0, 127, 0.35);
-}
-
-.vice-card-cyan {
-  border-color: rgba(0, 240, 255, 0.35);
-  background: linear-gradient(180deg, rgba(0, 240, 255, 0.08) 0%, rgba(18, 8, 38, 0.9) 100%);
-}
-.vice-card-cyan:hover {
-  border-color: var(--vice-cyan);
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.35);
-}
-
-.vice-card-gold {
-  border-color: rgba(255, 184, 0, 0.35);
-  background: linear-gradient(180deg, rgba(255, 184, 0, 0.08) 0%, rgba(18, 8, 38, 0.9) 100%);
-}
-.vice-card-gold:hover {
-  border-color: var(--vice-gold);
-  box-shadow: 0 0 30px rgba(255, 184, 0, 0.35);
-}
-
-/* Corner Laser Accents */
-.bracket-corners {
-  position: relative;
-}
-
-.bracket-corners::before,
-.bracket-corners::after {
-  content: '';
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.bracket-corners::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid var(--vice-pink);
-  border-left: 2px solid var(--vice-pink);
-  box-shadow: -2px -2px 8px var(--vice-pink);
-}
-
-.bracket-corners::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid var(--vice-cyan);
-  border-right: 2px solid var(--vice-cyan);
-  box-shadow: 2px 2px 8px var(--vice-cyan);
-}
-
-/* GTA VI Roman Numeral VI Metallic Badge */
-.gta-vi-badge {
+/* Primary Action Buttons */
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 900;
-  background: linear-gradient(135deg, #FF007F 0%, #FF8A00 50%, #00F0FF 100%);
-  color: #FFFFFF;
-  padding: 0.15rem 0.6rem;
-  border-radius: 4px;
-  letter-spacing: 0.1em;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.5), inset 0 1px 0 rgba(255,255,255,0.4);
-}
-
-/* Wanted Star Badges */
-.wanted-star {
-  color: #FFB800;
-  filter: drop-shadow(0 0 6px rgba(255, 184, 0, 0.7));
-}
-
-.wanted-star-dim {
-  color: rgba(255, 255, 255, 0.15);
-}
-
-/* Tag Badges */
-.tag-pink {
-  background: linear-gradient(135deg, var(--vice-pink), var(--vice-magenta));
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #ffffff;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  padding: 0.3rem 0.8rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-transform: uppercase;
-  border-radius: 3px;
-  box-shadow: 0 0 12px rgba(255, 0, 127, 0.4);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
 }
 
-.tag-cyan {
-  background: linear-gradient(135deg, var(--vice-cyan), #0099ff);
-  color: #000000;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  padding: 0.3rem 0.8rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-transform: uppercase;
-  border-radius: 3px;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
-.tag-yellow, .tag-gold {
-  background: linear-gradient(135deg, var(--vice-gold), var(--vice-orange));
-  color: #000000;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  padding: 0.3rem 0.8rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-transform: uppercase;
-  border-radius: 3px;
-  box-shadow: 0 0 12px rgba(255, 184, 0, 0.4);
-}
-
-.tag-outline {
-  border: 1px solid rgba(255, 0, 127, 0.5);
-  color: #FF77BA;
-  background: rgba(255, 0, 127, 0.1);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 3px;
-}
-
-/* Rockstar Buttons */
-.rockstar-btn {
+.btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
-  background: linear-gradient(135deg, #FF007F 0%, #FF4593 100%);
+  gap: 0.5rem;
+  background: #1e293b;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background: #334155;
   color: #ffffff;
-  font-family: var(--font-heading);
-  font-weight: 900;
-  font-size: 0.95rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.85rem 1.85rem;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-emerald {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
   border: none;
   cursor: pointer;
-  text-decoration: none;
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 20px rgba(255, 0, 127, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
 }
 
-.rockstar-btn:hover {
-  background: linear-gradient(135deg, #FF2A85 0%, #FF7EB3 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(255, 0, 127, 0.65), 0 0 15px var(--vice-pink);
-  color: #ffffff;
+.btn-emerald:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
 }
 
-.rockstar-btn:active {
-  transform: translateY(0);
-}
-
-.rockstar-btn-cyan {
-  background: linear-gradient(135deg, #00F0FF 0%, #00B4D8 100%);
-  color: #000000;
-  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.rockstar-btn-cyan:hover {
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 0 8px 30px rgba(0, 240, 255, 0.65);
-}
-
-.rockstar-btn-sunset {
-  background: linear-gradient(135deg, #FF007F 0%, #FF8A00 50%, #00F0FF 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 25px rgba(255, 0, 127, 0.45);
-}
-
-.rockstar-btn-sunset:hover {
-  filter: brightness(1.15);
-  box-shadow: 0 8px 35px rgba(255, 138, 0, 0.6);
-}
-
-.rockstar-btn-outline {
-  background: rgba(22, 11, 46, 0.6);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  box-shadow: none;
-}
-
-.rockstar-btn-outline:hover {
-  border-color: var(--vice-cyan);
-  color: var(--vice-cyan);
-  background: rgba(0, 240, 255, 0.1);
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
-}
-
-.rockstar-btn-danger {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid #ef4444;
-  color: #ef4444;
-}
-.rockstar-btn-danger:hover {
-  background: #ef4444;
-  color: #ffffff;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-}
-
-/* Telemetry & HUD Inputs */
-.hud-input {
+/* Clean Input Fields */
+.form-input {
   width: 100%;
-  background: rgba(14, 6, 30, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  padding: 0.85rem 1.15rem;
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 0.65rem 0.875rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
   outline: none;
 }
 
-.hud-input:focus {
-  border-color: var(--vice-pink);
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.35);
-  background: rgba(24, 10, 52, 0.95);
+.form-input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: #131d33;
 }
 
-.hud-input::placeholder {
-  color: #72628c;
+.form-input::placeholder {
+  color: #475569;
 }
 
-.hud-select {
+.form-select {
   width: 100%;
-  background: rgba(14, 6, 30, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  padding: 0.85rem 1.15rem;
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  border-radius: 4px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 0.65rem 0.875rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
   outline: none;
   cursor: pointer;
 }
 
-.hud-select:focus {
-  border-color: var(--vice-pink);
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.35);
+.form-select:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Mobile Operative Bottom Navigation */
-.team-bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(11, 4, 22, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 0, 127, 0.35);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
-  z-index: 100;
-  display: flex;
-  justify-content: space-around;
-  padding: 0.6rem 0.5rem 0.85rem 0.5rem;
+/* Badges */
+.badge-indigo {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
 }
 
-.team-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: #9d8ec2;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-decoration: none;
-  padding: 0.35rem 0.75rem;
-  border-radius: 4px;
-  transition: all 0.15s ease;
+.badge-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
 }
 
-.team-nav-item.active {
-  color: var(--vice-pink);
-  background: rgba(255, 0, 127, 0.15);
-  text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+.badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
 }
 
-/* Scanlines Effect */
-.scanline {
-  position: relative;
-  overflow: hidden;
+.badge-slate {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
 }
 
-.scanline::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 8, 38, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
-  z-index: 10;
-  background-size: 100% 4px;
-  pointer-events: none;
-  opacity: 0.45;
+/* Range Sliders for Fast Marks Entry */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
 }
-
-/* Animated Neon Borders */
-@keyframes neonPulse {
-  0%, 100% { border-color: rgba(255, 0, 127, 0.6); box-shadow: 0 0 20px rgba(255, 0, 127, 0.35); }
-  50% { border-color: rgba(0, 240, 255, 0.6); box-shadow: 0 0 25px rgba(0, 240, 255, 0.35); }
+input[type=range]:focus {
+  outline: none;
 }
-
-.animate-neon-pulse {
-  animation: neonPulse 4s infinite ease-in-out;
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #1e293b;
+  border-radius: 3px;
+}
+input[type=range]::-webkit-slider-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #1e293b;
+  border-radius: 3px;
+}
+input[type=range]::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }

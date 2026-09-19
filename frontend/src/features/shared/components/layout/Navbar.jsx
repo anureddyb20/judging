@@ -32,7 +32,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Launchpad', href: '/' },
-    { name: 'Live Leaderboard', href: '/leaderboard' },
+    ...(currentUser?.role === 'judge' ? [] : [{ name: 'Live Leaderboard', href: '/leaderboard' }]),
     { name: 'Problem Tracks', href: '/missions' },
     { name: 'Guidelines & Rubrics', href: '/rules' },
   ];

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useDataStore } from '@/features/shared/services/storage/dataStore';
 import { computeLeaderboard } from '@/features/shared/services/scoring/scoringEngine';
 import { 
@@ -12,12 +13,13 @@ import {
   Lock, 
   Medal,
   CheckCircle2,
-  Info
+  Info,
+  ShieldAlert
 } from 'lucide-react';
 import TeamDossierModal from '@/components/ui/TeamDossierModal';
 
 export default function LeaderboardPage() {
-  const { teams, evaluations, rubrics, missions, eventSettings } = useDataStore();
+  const { currentUser, teams, evaluations, rubrics, missions, eventSettings } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMission, setSelectedMission] = useState('ALL');
@@ -33,6 +35,29 @@ export default function LeaderboardPage() {
     const matchesMission = selectedMission === 'ALL' || t.mission_id === selectedMission;
     return matchesSearch && matchesMission;
   });
+
+  if (currentUser?.role === 'judge') {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-24 text-center">
+        <div className="clean-card p-10 bg-slate-900 border border-indigo-500/20 space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">
+            Evaluator Clearance Restriction
+          </h2>
+          <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+            Live competition leaderboard and comparative rankings are restricted for judges to ensure independent, unbiased scoring during the evaluation period.
+          </p>
+          <div className="pt-2">
+            <Link href="/judge/dashboard" className="btn-primary text-xs py-2 px-4 inline-flex items-center gap-2">
+              <span>Return to Judge Cockpit</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isLeaderboardHidden = !eventSettings?.show_leaderboard;
 

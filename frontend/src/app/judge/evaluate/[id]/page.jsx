@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDataStore } from '@/lib/dataStore';
+import { useDataStore } from '@/features/shared/services/storage/dataStore';
 import { 
   Github, 
   ExternalLink, 
@@ -16,9 +16,14 @@ import {
   HelpCircle,
   Award,
   Clock,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight,
+  Sliders,
+  MessageSquarePlus
 } from 'lucide-react';
 import Link from 'next/link';
+import { PitchTimer } from '@/components/judge/PitchTimer';
 
 export default function JudgeEvaluatePage() {
   const params = useParams();
@@ -29,6 +34,7 @@ export default function JudgeEvaluatePage() {
     currentUser, 
     judges, 
     teams, 
+    assignments,
     missions, 
     evaluations, 
     rubrics, 
@@ -46,6 +52,16 @@ export default function JudgeEvaluatePage() {
   const team = teams.find(t => t.id === teamId);
   const mission = missions.find(m => m.id === team?.mission_id);
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
+
+  // Assigned teams for this judge (for the Fast Team Switcher)
+  const myAssignedTeams = assignments
+    .filter(a => a.judge_id === currentJudge?.id)
+    .map(a => teams.find(t => t.id === a.team_id))
+    .filter(Boolean);
+
+  const currentTeamIndex = myAssignedTeams.findIndex(t => t.id === teamId);
+  const prevTeam = currentTeamIndex > 0 ? myAssignedTeams[currentTeamIndex - 1] : null;
+  const nextTeam = currentTeamIndex < myAssignedTeams.length - 1 ? myAssignedTeams[currentTeamIndex + 1] : null;
 
   // Existing evaluation if any
   const existingEval = evaluations.find(e => e.judge_id === currentJudge?.id && e.team_id === teamId);
@@ -70,14 +86,16 @@ export default function JudgeEvaluatePage() {
       setScoresMap(sMap);
       setCommentMap(cMap);
     } else {
-      // Default to 20.0 marks for each 25 pt criterion on new review
+      // Default to 80% marks on fresh scorecard
       const defaultScores = {};
       activeRubric?.criteria?.forEach(c => {
         defaultScores[c.id] = Math.round(c.max_marks * 0.8);
       });
       setScoresMap(defaultScores);
+      setCommentMap({});
+      setOverallFeedback('');
     }
-  }, [existingEval, activeRubric]);
+  }, [existingEval, activeRubric, teamId]);
 
   if (!team) {
     return (
@@ -90,7 +108,7 @@ export default function JudgeEvaluatePage() {
     );
   }
 
-  // Calculate live total
+  // Calculate live total score
   const calculatedTotal = (activeRubric?.criteria || []).reduce((acc, c) => {
     const val = Number(scoresMap[c.id]) || 0;
     return acc + val;
@@ -99,6 +117,22 @@ export default function JudgeEvaluatePage() {
   const handleScoreChange = (criterionId, val, maxMarks) => {
     const num = Math.min(maxMarks, Math.max(0, Number(val) || 0));
     setScoresMap(prev => ({ ...prev, [criterionId]: num }));
+  };
+
+  const appendCriterionComment = (criterionId, phrase) => {
+    setCommentMap(prev => {
+      const existing = prev[criterionId] || '';
+      return {
+        ...prev,
+        [criterionId]: existing ? `${existing}; ${phrase}` : phrase
+      };
+    });
+  };
+
+  const appendOverallFeedback = (phrase) => {
+    setOverallFeedback(prev => {
+      return prev ? `${prev} ${phrase}` : phrase;
+    });
   };
 
   const handleSave = (isDraft) => {
@@ -121,18 +155,94 @@ export default function JudgeEvaluatePage() {
 
     setIsSubmitting(false);
     if (!isDraft) {
+      showToast(`Scorecard for ${team.name} finalized: ${calculatedTotal.toFixed(1)} / 100`, 'success');
       router.push('/judge/dashboard');
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Navigation & Header */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Feature 3: Fast Team Switcher Bar */}
+      <div className="clean-card p-3 bg-slate-900/95 border border-white/10 flex items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-2 text-xs font-mono text-slate-400 font-bold shrink-0">
+          <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+          <span className="hidden sm:inline">ROSTER QUEUE ({myAssignedTeams.length}):</span>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5 flex-1 max-w-3xl">
+          {myAssignedTeams.map(t => {
+            const ev = evaluations.find(e => e.judge_id === currentJudge?.id && e.team_id === t.id);
+            const isCurrent = t.id === teamId;
+            const isEvaluated = ev && !ev.is_draft;
+            const isDraft = ev && ev.is_draft;
+
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => router.push(`/judge/evaluate/${t.id}`)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 flex items-center gap-2 border select-none ${
+                  isCurrent
+                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30'
+                    : isEvaluated
+                    ? 'bg-emerald-950/30 text-emerald-300 border-emerald-500/30 hover:border-emerald-500/50'
+                    : isDraft
+                    ? 'bg-amber-950/30 text-amber-300 border-amber-500/30 hover:border-amber-500/50'
+                    : 'bg-slate-950 text-slate-400 border-white/5 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span>{t.team_code}</span>
+                <span className="hidden md:inline font-sans font-medium text-[11px] opacity-80 max-w-[90px] truncate">
+                  {t.name}
+                </span>
+                {isEvaluated && (
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-1.5 py-0.2 rounded">
+                    {Number(ev.total_score || 0).toFixed(0)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Previous / Next Shortcut Arrows */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            disabled={!prevTeam}
+            onClick={() => prevTeam && router.push(`/judge/evaluate/${prevTeam.id}`)}
+            className={`p-1.5 rounded border transition-colors ${
+              prevTeam 
+                ? 'bg-slate-800 text-slate-200 border-white/10 hover:bg-slate-700' 
+                : 'bg-slate-950 text-slate-600 border-white/5 cursor-not-allowed'
+            }`}
+            title={prevTeam ? `Previous: ${prevTeam.name}` : 'No previous team'}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            disabled={!nextTeam}
+            onClick={() => nextTeam && router.push(`/judge/evaluate/${nextTeam.id}`)}
+            className={`p-1.5 rounded border transition-colors ${
+              nextTeam 
+                ? 'bg-slate-800 text-slate-200 border-white/10 hover:bg-slate-700' 
+                : 'bg-slate-950 text-slate-600 border-white/5 cursor-not-allowed'
+            }`}
+            title={nextTeam ? `Next: ${nextTeam.name}` : 'No next team'}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation & Live Score Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
         <div className="flex items-center gap-3">
           <Link
             href="/judge/dashboard"
             className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            title="Return to Evaluator Cockpit"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -147,8 +257,8 @@ export default function JudgeEvaluatePage() {
           </div>
         </div>
 
-        {/* Live Score Counter Pill */}
-        <div className="bg-slate-900 border border-indigo-500/30 p-3 rounded-xl flex items-center gap-4 self-start sm:self-auto">
+        {/* Live Score Counter Pill & Save Controls */}
+        <div className="bg-slate-900 border border-indigo-500/30 p-3 rounded-xl flex items-center gap-4 self-start sm:self-auto shadow-xl">
           <div>
             <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">CURRENT SCORE</div>
             <div className="text-2xl font-extrabold font-mono text-indigo-400">
@@ -157,6 +267,7 @@ export default function JudgeEvaluatePage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => handleSave(true)}
               disabled={isSubmitting}
               className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
@@ -165,6 +276,7 @@ export default function JudgeEvaluatePage() {
               <span>Save Draft</span>
             </button>
             <button
+              type="button"
               onClick={() => handleSave(false)}
               disabled={isSubmitting}
               className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5"
@@ -177,8 +289,12 @@ export default function JudgeEvaluatePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Project Submission Dossier */}
+        {/* Left Column: Feature 1 In-Cockpit Pitch Timer & Project Submission Dossier */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Feature 1: Live Pitch & Q&A Timer Component */}
+          <PitchTimer />
+
+          {/* Project Submission Dossier */}
           <div className="clean-card p-6 space-y-5">
             <div>
               <div className="text-[10px] font-mono text-indigo-400 font-bold uppercase mb-1">
@@ -286,17 +402,26 @@ export default function JudgeEvaluatePage() {
           </div>
         </div>
 
-        {/* Right Column: Multi-Criterion Marks Card */}
+        {/* Right Column: Multi-Criterion Rubric Grading with Feature 6 Presets */}
         <div className="lg:col-span-7 space-y-6">
           <div className="clean-card p-6 space-y-6">
-            <div className="border-b border-white/5 pb-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Award className="w-5 h-5 text-indigo-400" />
-                <span>Rubric Criterion Grading</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Enter marks (0 to max) and criterion-specific observations.
-              </p>
+            <div className="border-b border-white/5 pb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-indigo-400" />
+                  <span>Rubric Criterion Grading</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Score each dimension with quick benchmark chips or fine-tuning sliders.
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] font-mono uppercase text-slate-400 block">RUBRIC TOTAL</span>
+                <span className="text-base font-mono font-bold text-white">
+                  {calculatedTotal.toFixed(1)} <span className="text-slate-500 text-xs">/ 100</span>
+                </span>
+              </div>
             </div>
 
             {/* Criteria List */}
@@ -305,10 +430,27 @@ export default function JudgeEvaluatePage() {
                 const currentScore = scoresMap[criterion.id] ?? 0;
                 const maxMarks = criterion.max_marks;
 
+                // Feature 6: Benchmark quick-picks
+                const presets = [
+                  { label: 'Needs Work', val: Math.round(maxMarks * 0.5) },
+                  { label: 'Fair', val: Math.round(maxMarks * 0.7) },
+                  { label: 'Good', val: Math.round(maxMarks * 0.85) },
+                  { label: 'Exceptional', val: maxMarks }
+                ];
+
+                // Fast suggestion chips for this criterion
+                const suggestionChips = [
+                  '+ Strong Architecture',
+                  '+ Great Demo',
+                  '+ Clear Value Prop',
+                  '- Needs Market Fit',
+                  '- Incomplete Flow'
+                ];
+
                 return (
                   <div
                     key={criterion.id}
-                    className="p-5 rounded-xl bg-slate-900/90 border border-white/5 space-y-3.5"
+                    className="p-5 rounded-xl bg-slate-900/90 border border-white/5 space-y-3.5 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -352,26 +494,47 @@ export default function JudgeEvaluatePage() {
                           max={maxMarks}
                           value={currentScore}
                           onChange={(e) => handleScoreChange(criterion.id, e.target.value, maxMarks)}
-                          className="w-16 p-1 text-center font-mono font-bold text-sm bg-slate-950 border border-white/10 rounded text-white"
+                          className="w-16 p-1 text-center font-mono font-bold text-sm bg-slate-950 border border-white/10 rounded text-white focus:outline-none focus:border-indigo-500"
                         />
                       </div>
 
-                      {/* Quick Presets */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-mono text-slate-400">Presets:</span>
-                        {[
-                          { label: 'Fair (15)', val: Math.round(maxMarks * 0.6) },
-                          { label: 'Good (20)', val: Math.round(maxMarks * 0.8) },
-                          { label: 'Excellent (23)', val: Math.round(maxMarks * 0.92) },
-                          { label: 'Max (25)', val: maxMarks }
-                        ].map((preset, pIdx) => (
+                      {/* Feature 6: Rapid Rubric Scoring Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span className="text-[10px] font-mono text-slate-500 uppercase font-bold mr-1">
+                          Benchmark Presets:
+                        </span>
+                        {presets.map((preset, pIdx) => {
+                          const isActivePreset = currentScore === preset.val;
+                          return (
+                            <button
+                              key={pIdx}
+                              type="button"
+                              onClick={() => handleScoreChange(criterion.id, preset.val, maxMarks)}
+                              className={`px-2 py-0.5 text-[11px] font-mono rounded transition-all ${
+                                isActivePreset
+                                  ? 'bg-indigo-600 text-white font-bold shadow-sm'
+                                  : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border border-white/5'
+                              }`}
+                            >
+                              {preset.label} ({preset.val})
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quick Qualitative Feedback Chips */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        <span className="text-[10px] font-mono text-slate-500 uppercase">
+                          Quick Notes:
+                        </span>
+                        {suggestionChips.map((chip, cIdx) => (
                           <button
-                            key={pIdx}
+                            key={cIdx}
                             type="button"
-                            onClick={() => handleScoreChange(criterion.id, preset.val, maxMarks)}
-                            className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                            onClick={() => appendCriterionComment(criterion.id, chip)}
+                            className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-white/5 transition-colors"
                           >
-                            {preset.label}
+                            {chip}
                           </button>
                         ))}
                       </div>
@@ -379,10 +542,10 @@ export default function JudgeEvaluatePage() {
                       {/* Criterion Comment */}
                       <input
                         type="text"
-                        placeholder={`Optional comments for ${criterion.name}...`}
+                        placeholder={`Optional feedback on ${criterion.name}...`}
                         value={commentMap[criterion.id] || ''}
                         onChange={(e) => setCommentMap(prev => ({ ...prev, [criterion.id]: e.target.value }))}
-                        className="form-input text-xs py-1.5"
+                        className="form-input text-xs py-1.5 mt-1"
                       />
                     </div>
                   </div>
@@ -392,9 +555,32 @@ export default function JudgeEvaluatePage() {
 
             {/* Overall Constructive Feedback */}
             <div className="pt-4 border-t border-white/5 space-y-2">
-              <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                Overall Judge Feedback & Recommendations for the Team:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                  Overall Feedback & Jury Recommendations:
+                </label>
+              </div>
+
+              {/* Quick Overall Suggestion Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono text-slate-500">Insert:</span>
+                {[
+                  'Great presentation style and clear architecture.',
+                  'Solid prototype, but needs clearer go-to-market plan.',
+                  'Impressive technical execution and working demo.',
+                  'Deeper differentiation required against existing solutions.'
+                ].map((sug, sIdx) => (
+                  <button
+                    key={sIdx}
+                    type="button"
+                    onClick={() => appendOverallFeedback(sug)}
+                    className="px-2 py-0.5 rounded text-[10px] bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-white/5 transition-colors text-left"
+                  >
+                    + {sug.slice(0, 32)}...
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 rows={4}
                 value={overallFeedback}
@@ -418,7 +604,7 @@ export default function JudgeEvaluatePage() {
                 type="button"
                 onClick={() => handleSave(false)}
                 disabled={isSubmitting}
-                className="btn-primary text-xs py-2.5 px-6 flex items-center gap-2"
+                className="btn-primary text-xs py-2.5 px-6 flex items-center gap-2 shadow-lg shadow-indigo-600/25"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Submit Final Scorecard ({calculatedTotal.toFixed(1)} / 100)</span>

@@ -96,8 +96,9 @@ export function aggregateTeamScores(teamId, evaluations = [], criteria = [], sco
       let sum = 0;
       let count = 0;
       for (const ev of teamEvals) {
-        if (ev.scores && Array.isArray(ev.scores)) {
-          const s = ev.scores.find(sc => sc.criterion_id === c.id);
+        const itemScores = ev.criteria_scores || ev.scores;
+        if (itemScores && Array.isArray(itemScores)) {
+          const s = itemScores.find(sc => sc.criterion_id === c.id);
           if (s && s.score !== undefined && s.score !== null) {
             sum += Number(s.score) || 0;
             count++;

@@ -74,7 +74,7 @@ export default function TeamDashboard() {
           <div className="bg-slate-950 p-4 rounded-xl border border-indigo-500/30 text-center min-w-[140px]">
             <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">AGGREGATE SCORE</div>
             <div className="text-3xl font-extrabold font-mono text-indigo-400 mt-0.5">
-              {eventSettings.show_live_score ? aggregate.finalScore.toFixed(1) : '***'}
+              {eventSettings.show_live_score ? (Number(aggregate?.finalScore) || 0).toFixed(1) : '***'}
             </div>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function TeamDashboard() {
                       </span>
                       {eventSettings.show_live_score && (
                         <span className="text-xs font-mono font-bold text-indigo-400">
-                          {ev.total_score.toFixed(1)} / 100
+                          {(Number(ev.total_score) || 0).toFixed(1)} / 100
                         </span>
                       )}
                     </div>

@@ -55,9 +55,9 @@ export default function AdminDashboard() {
       let row = `${t.rank},"${t.team_code}","${t.name}","${mission?.title || ''}","${t.room || ''}","${t.pitch_slot || ''}",`;
       activeJudges.forEach(j => {
         const ev = evaluations.find(e => e.judge_id === j.id && e.team_id === t.id);
-        row += ev && !ev.is_draft ? `${ev.total_score},` : '-,';
+        row += ev && !ev.is_draft ? `${(Number(ev.total_score) || 0).toFixed(1)},` : '-,';
       });
-      row += `${t.score.toFixed(1)}\n`;
+      row += `${(Number(t.score) || 0).toFixed(1)}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
                         return (
                           <td key={judge.id} className="p-3.5 text-center">
                             <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded font-mono font-bold">
-                              {evalRecord.total_score.toFixed(1)}
+                              {(Number(evalRecord.total_score) || 0).toFixed(1)}
                             </span>
                           </td>
                         );
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
                     })}
 
                     <td className="p-3.5 text-right font-mono font-bold text-base text-indigo-400">
-                      {teamLeaderboard ? teamLeaderboard.score.toFixed(1) : '0.0'}
+                      {teamLeaderboard ? (Number(teamLeaderboard.score) || 0).toFixed(1) : '0.0'}
                     </td>
                   </tr>
                 );

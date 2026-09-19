@@ -65,7 +65,32 @@ export function DataStoreProvider({ children }) {
         if (parsed.judges) setJudges(parsed.judges);
         if (parsed.teams) setTeams(parsed.teams);
         if (parsed.assignments) setAssignments(parsed.assignments);
-        if (parsed.evaluations) setEvaluations(parsed.evaluations);
+        if (parsed.evaluations && Array.isArray(parsed.evaluations)) {
+          const activeRub = (parsed.rubrics || INITIAL_RUBRICS).find(r => r.is_active) || (parsed.rubrics || INITIAL_RUBRICS)[0];
+          const criteria = activeRub?.criteria || [];
+          const method = (parsed.eventSettings || INITIAL_EVENT_SETTINGS)?.scoring_method || 'average';
+          const sanitizedEvals = parsed.evaluations.map(ev => {
+            let score = ev.total_score;
+            if (score === undefined || score === null || isNaN(Number(score))) {
+              const itemScores = ev.criteria_scores || ev.scores;
+              if (itemScores && itemScores.length) {
+                const res = calculateEvaluationScore(itemScores, criteria, method);
+                score = typeof res === 'number' && !isNaN(res) ? res : 0;
+              } else {
+                score = 0;
+              }
+            } else {
+              score = Number(score);
+            }
+            return {
+              ...ev,
+              total_score: score,
+              criteria_scores: ev.criteria_scores || ev.scores || [],
+              scores: ev.criteria_scores || ev.scores || []
+            };
+          });
+          setEvaluations(sanitizedEvals);
+        }
         if (parsed.announcements) setAnnouncements(parsed.announcements);
         if (parsed.schedule) setSchedule(parsed.schedule);
       }
@@ -174,12 +199,18 @@ export function DataStoreProvider({ children }) {
   // Submission & Marks Evaluation
   const submitEvaluation = useCallback((evalData) => {
     const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
-    const calcResult = calculateEvaluationScore(evalData.criteria_scores, activeRubric, eventSettings.scoring_method);
-    const finalScore = calcResult.totalScore;
+    const criteria = activeRubric?.criteria || [];
+    const scoringMethod = activeRubric?.scoring_method || eventSettings?.scoring_method || 'average';
+    const calcResult = calculateEvaluationScore(evalData.criteria_scores || evalData.scores, criteria, scoringMethod);
+    const finalScore = typeof calcResult === 'number' && !isNaN(calcResult)
+      ? calcResult
+      : (typeof calcResult?.totalScore === 'number' ? calcResult.totalScore : (Number(calcResult) || 0));
 
     const evaluationPayload = {
       ...evalData,
       id: evalData.id || `eval_${Date.now()}`,
+      scores: evalData.criteria_scores || evalData.scores || [],
+      criteria_scores: evalData.criteria_scores || evalData.scores || [],
       total_score: finalScore,
       updated_at: new Date().toISOString()
     };
@@ -202,7 +233,7 @@ export function DataStoreProvider({ children }) {
       return a;
     }));
 
-    showToast(`Evaluation saved: ${finalScore.toFixed(1)} / 100`, 'success');
+    showToast(`Evaluation saved: ${(Number(finalScore) || 0).toFixed(1)} / 100`, 'success');
     return evaluationPayload;
   }, [rubrics, eventSettings, showToast]);
 
@@ -217,17 +248,77 @@ export function DataStoreProvider({ children }) {
     showToast(`Check-in status updated`, 'info');
   }, [showToast]);
 
-  // Admin Controls
-  const updateEventSettings = useCallback((newSettings) => {
-    setEventSettings(prev => ({ ...prev, ...newSettings, updated_at: new Date().toISOString() }));
-    showToast('Settings updated successfully', 'success');
+  // Admin Controls: Teams CRUD
+  const addTeam = useCallback((newTeam) => {
+    const teamRecord = {
+      id: newTeam.id || `t_${Date.now()}`,
+      team_code: newTeam.team_code || `TM-${Math.floor(100 + Math.random() * 900)}`,
+      name: newTeam.name || 'New Team',
+      mission_id: newTeam.mission_id || 'm1',
+      room: newTeam.room || 'Room Alpha (Lab 101)',
+      pitch_slot: newTeam.pitch_slot || '10:00 AM - 10:08 AM',
+      members: newTeam.members || [],
+      checked_in: false,
+      pitch_status: 'pending',
+      submission: newTeam.submission || {
+        title: newTeam.name || 'Project Blueprint',
+        problem_statement: newTeam.problem_statement || '',
+        solution_description: newTeam.solution_description || '',
+        tech_stack: newTeam.tech_stack || ['Next.js', 'Tailwind', 'AI API'],
+        github_url: newTeam.github_url || 'https://github.com/example/project',
+        demo_url: newTeam.demo_url || 'https://demo.example.com',
+        status: 'submitted'
+      }
+    };
+    setTeams(prev => [teamRecord, ...prev]);
+    showToast(`Team ${teamRecord.name} registered`, 'success');
+    return teamRecord;
   }, [showToast]);
 
-  const updateRubric = useCallback((rubricId, criteria) => {
-    setRubrics(prev => prev.map(r => (r.id === rubricId ? { ...r, criteria } : r)));
-    showToast('Rubric criteria updated', 'success');
+  const updateTeam = useCallback((teamId, updates) => {
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updates } : t));
+    showToast('Team details updated', 'success');
   }, [showToast]);
 
+  const deleteTeam = useCallback((teamId) => {
+    setTeams(prev => prev.filter(t => t.id !== teamId));
+    setAssignments(prev => prev.filter(a => a.team_id !== teamId));
+    setEvaluations(prev => prev.filter(e => e.team_id !== teamId));
+    showToast('Team removed', 'info');
+  }, [showToast]);
+
+  // Admin Controls: Judges CRUD
+  const addJudge = useCallback((newJudge) => {
+    const judgeRecord = {
+      id: newJudge.id || `j_${Date.now()}`,
+      name: newJudge.name,
+      email: newJudge.email || `${newJudge.name.toLowerCase().replace(/\s+/g, '.')}@ideathon.org`,
+      specialization: newJudge.specialization || 'AI & Distributed Systems',
+      assigned_room: newJudge.assigned_room || 'Room Alpha (Lab 101)',
+      is_active: newJudge.is_active !== undefined ? newJudge.is_active : true
+    };
+    setJudges(prev => [...prev, judgeRecord]);
+    showToast(`Judge ${judgeRecord.name} added to panel`, 'success');
+    return judgeRecord;
+  }, [showToast]);
+
+  const updateJudge = useCallback((judgeId, updates) => {
+    setJudges(prev => prev.map(j => j.id === judgeId ? { ...j, ...updates } : j));
+    showToast('Judge details updated', 'success');
+  }, [showToast]);
+
+  const toggleJudgeActive = useCallback((judgeId) => {
+    setJudges(prev => prev.map(j => j.id === judgeId ? { ...j, is_active: !j.is_active } : j));
+    showToast('Judge status toggled', 'info');
+  }, [showToast]);
+
+  const deleteJudge = useCallback((judgeId) => {
+    setJudges(prev => prev.filter(j => j.id !== judgeId));
+    setAssignments(prev => prev.filter(a => a.judge_id !== judgeId));
+    showToast('Judge removed from panel', 'info');
+  }, [showToast]);
+
+  // Admin Controls: Assignments
   const assignJudgeToTeam = useCallback((judgeId, teamId) => {
     setAssignments(prev => {
       const exists = prev.some(a => a.judge_id === judgeId && a.team_id === teamId);
@@ -240,6 +331,151 @@ export function DataStoreProvider({ children }) {
   const removeJudgeAssignment = useCallback((judgeId, teamId) => {
     setAssignments(prev => prev.filter(a => !(a.judge_id === judgeId && a.team_id === teamId)));
     showToast('Assignment removed', 'info');
+  }, [showToast]);
+
+  const autoAssignJudges = useCallback((judgesPerTeam = 2) => {
+    const activeJudgeList = judges.filter(j => j.is_active);
+    if (!activeJudgeList.length) {
+      showToast('No active judges available to assign', 'error');
+      return;
+    }
+    const newAssignments = [];
+    teams.forEach((team, tIdx) => {
+      for (let i = 0; i < judgesPerTeam; i++) {
+        const judge = activeJudgeList[(tIdx * judgesPerTeam + i) % activeJudgeList.length];
+        newAssignments.push({
+          id: `a_${team.id}_${judge.id}_${Date.now()}_${i}`,
+          judge_id: judge.id,
+          team_id: team.id,
+          status: 'pending'
+        });
+      }
+    });
+    setAssignments(newAssignments);
+    showToast(`Auto-assigned ${judgesPerTeam} judges per team (${newAssignments.length} total assignments)`, 'success');
+  }, [judges, teams, showToast]);
+
+  const clearAllAssignments = useCallback(() => {
+    setAssignments([]);
+    showToast('All judge assignments cleared', 'info');
+  }, [showToast]);
+
+  // Admin Controls: Rubric Criteria CRUD
+  const addRubricCriterion = useCallback((rubricId, criterion) => {
+    const newCriterion = {
+      id: `c_${Date.now()}`,
+      rubric_id: rubricId,
+      name: criterion.name || 'New Criterion',
+      description: criterion.description || '',
+      max_marks: Number(criterion.max_marks) || 25,
+      weight: Number(criterion.weight) || 1.0,
+      order_index: Date.now()
+    };
+    setRubrics(prev => prev.map(r => r.id === rubricId ? { ...r, criteria: [...(r.criteria || []), newCriterion] } : r));
+    showToast('Criterion added to rubric', 'success');
+  }, [showToast]);
+
+  const updateRubricCriterion = useCallback((rubricId, criterionId, updates) => {
+    setRubrics(prev => prev.map(r => {
+      if (r.id !== rubricId) return r;
+      return {
+        ...r,
+        criteria: (r.criteria || []).map(c => c.id === criterionId ? { ...c, ...updates } : c)
+      };
+    }));
+    showToast('Criterion updated', 'success');
+  }, [showToast]);
+
+  const deleteRubricCriterion = useCallback((rubricId, criterionId) => {
+    setRubrics(prev => prev.map(r => {
+      if (r.id !== rubricId) return r;
+      return {
+        ...r,
+        criteria: (r.criteria || []).filter(c => c.id !== criterionId)
+      };
+    }));
+    showToast('Criterion removed from rubric', 'info');
+  }, [showToast]);
+
+  const setScoringMethod = useCallback((method) => {
+    setEventSettings(prev => ({ ...prev, scoring_method: method }));
+    setRubrics(prev => prev.map(r => ({ ...r, scoring_method: method })));
+    showToast(`Scoring method set to: ${method.toUpperCase()}`, 'success');
+  }, [showToast]);
+
+  // Admin Controls: Evaluations Calibration & Delete
+  const overrideEvaluationScore = useCallback((evalId, newScore, feedback) => {
+    setEvaluations(prev => prev.map(e => e.id === evalId ? {
+      ...e,
+      total_score: Number(newScore) || 0,
+      feedback: feedback !== undefined ? feedback : e.feedback,
+      updated_at: new Date().toISOString()
+    } : e));
+    showToast('Evaluation calibrated successfully', 'success');
+  }, [showToast]);
+
+  const deleteEvaluation = useCallback((evalId) => {
+    setEvaluations(prev => prev.filter(e => e.id !== evalId));
+    showToast('Evaluation removed', 'info');
+  }, [showToast]);
+
+  // Admin Controls: Submissions
+  const updateSubmissionStatus = useCallback((teamId, status, feedback) => {
+    setTeams(prev => prev.map(t => {
+      if (t.id !== teamId) return t;
+      const sub = t.submission || {};
+      return {
+        ...t,
+        submission: {
+          ...sub,
+          status,
+          admin_feedback: feedback || sub.admin_feedback || ''
+        }
+      };
+    }));
+    showToast(`Submission status updated to: ${status.toUpperCase()}`, 'success');
+  }, [showToast]);
+
+  // Admin Controls: Schedule Timeline
+  const addSchedulePhase = useCallback((phase) => {
+    const newPhase = {
+      id: `p_${Date.now()}`,
+      phase_name: phase.phase_name || 'New Event Phase',
+      time_slot: phase.time_slot || '12:00 PM - 01:00 PM',
+      description: phase.description || '',
+      room: phase.room || 'Main Stage',
+      status: phase.status || 'upcoming',
+      order_index: Date.now()
+    };
+    setSchedule(prev => [...prev, newPhase]);
+    showToast('Schedule phase added', 'success');
+  }, [showToast]);
+
+  const updateSchedulePhase = useCallback((phaseId, updates) => {
+    setSchedule(prev => prev.map(p => p.id === phaseId ? { ...p, ...updates } : p));
+    showToast('Schedule phase updated', 'success');
+  }, [showToast]);
+
+  const togglePhaseStatus = useCallback((phaseId) => {
+    const cycle = { upcoming: 'active', active: 'completed', completed: 'upcoming' };
+    setSchedule(prev => prev.map(p => p.id === phaseId ? { ...p, status: cycle[p.status] || 'upcoming' } : p));
+    showToast('Phase status updated', 'info');
+  }, [showToast]);
+
+  const deleteSchedulePhase = useCallback((phaseId) => {
+    setSchedule(prev => prev.filter(p => p.id !== phaseId));
+    showToast('Phase deleted from timeline', 'info');
+  }, [showToast]);
+
+  // General Settings & Reset
+  const updateEventSettings = useCallback((newSettings) => {
+    setEventSettings(prev => ({ ...prev, ...newSettings, updated_at: new Date().toISOString() }));
+    showToast('Settings updated successfully', 'success');
+  }, [showToast]);
+
+  const updateRubric = useCallback((rubricId, criteria) => {
+    setRubrics(prev => prev.map(r => (r.id === rubricId ? { ...r, criteria } : r)));
+    showToast('Rubric criteria updated', 'success');
   }, [showToast]);
 
   const resetToDefaultData = useCallback(() => {
@@ -281,6 +517,26 @@ export function DataStoreProvider({ children }) {
     updateRubric,
     assignJudgeToTeam,
     removeJudgeAssignment,
+    autoAssignJudges,
+    clearAllAssignments,
+    addTeam,
+    updateTeam,
+    deleteTeam,
+    addJudge,
+    updateJudge,
+    toggleJudgeActive,
+    deleteJudge,
+    addRubricCriterion,
+    updateRubricCriterion,
+    deleteRubricCriterion,
+    setScoringMethod,
+    overrideEvaluationScore,
+    deleteEvaluation,
+    updateSubmissionStatus,
+    addSchedulePhase,
+    updateSchedulePhase,
+    togglePhaseStatus,
+    deleteSchedulePhase,
     resetToDefaultData,
     showToast
   };

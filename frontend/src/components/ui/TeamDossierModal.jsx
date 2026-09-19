@@ -118,7 +118,7 @@ export default function TeamDossierModal({ team, isOpen, onClose }) {
             <div>
               <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500">Verified Score</div>
               <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5 flex items-baseline gap-1">
-                {isEvaluated ? `${totalScore.toFixed(1)} / 100` : 'Pending'}
+                {isEvaluated ? `${(Number(totalScore) || 0).toFixed(1)} / 100` : 'Pending'}
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@ export default function TeamDossierModal({ team, isOpen, onClose }) {
               </h3>
               {isEvaluated && (
                 <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-500/30">
-                  Total: {totalScore.toFixed(1)} / 100
+                  Total: {(Number(totalScore) || 0).toFixed(1)} / 100
                 </span>
               )}
             </div>
@@ -205,15 +205,26 @@ export default function TeamDossierModal({ team, isOpen, onClose }) {
             {isEvaluated ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {activeRubric?.criteria.map((criterion, idx) => {
-                    const avgCrit = teamEvals.reduce((acc, ev) => acc + (ev.criteria_scores?.[criterion.id] || 0), 0) / teamEvals.length;
-                    const pct = Math.round((avgCrit / criterion.max_points) * 100);
+                  {(activeRubric?.criteria || []).map((criterion, idx) => {
+                    const maxMarks = Number(criterion.max_marks || criterion.max_points) || 25;
+                    const avgCrit = teamEvals.length > 0 ? (teamEvals.reduce((acc, ev) => {
+                      let s = 0;
+                      const list = ev.criteria_scores || ev.scores;
+                      if (Array.isArray(list)) {
+                        const found = list.find(item => item.criterion_id === criterion.id);
+                        s = found ? found.score : 0;
+                      } else if (list && typeof list === 'object') {
+                        s = list[criterion.id] || 0;
+                      }
+                      return acc + (Number(s) || 0);
+                    }, 0) / teamEvals.length) : 0;
+                    const pct = Math.min(100, Math.round((avgCrit / maxMarks) * 100));
 
                     return (
                       <div key={criterion.id} className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="font-semibold text-slate-300">{idx + 1}. {criterion.name}</span>
-                          <span className="font-mono font-bold text-indigo-400">{avgCrit.toFixed(1)} / {criterion.max_points}</span>
+                          <span className="font-mono font-bold text-indigo-400">{(Number(avgCrit) || 0).toFixed(1)} / {maxMarks}</span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1">
                           <div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
@@ -325,3 +336,5 @@ export default function TeamDossierModal({ team, isOpen, onClose }) {
     </div>
   );
 }
+
+export { TeamDossierModal };

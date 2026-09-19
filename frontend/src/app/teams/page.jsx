@@ -178,7 +178,7 @@ export default function TeamsDirectoryPage() {
 
                     {isEvaluated ? (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 rounded">
-                        {avgScore.toFixed(1)} / 100
+                        {(Number(avgScore) || 0).toFixed(1)} / 100
                       </span>
                     ) : (
                       <span className="text-[11px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">

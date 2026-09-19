@@ -190,7 +190,7 @@ export default function JudgeDashboard() {
                   <div className="flex items-center justify-between p-3 bg-emerald-950/30 border border-emerald-800/40 rounded-lg">
                     <span className="text-xs font-medium text-emerald-400">Assigned Score:</span>
                     <span className="text-base font-bold font-mono text-emerald-300">
-                      {evaluation.total_score.toFixed(1)} / 100
+                      {(Number(evaluation.total_score) || 0).toFixed(1)} / 100
                     </span>
                   </div>
                 )}

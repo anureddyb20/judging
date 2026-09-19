@@ -96,7 +96,7 @@ export default function LeaderboardPage() {
             <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between font-mono">
               <span className="text-xs text-slate-400">Aggregate Score</span>
               <span className="text-xl font-bold text-white">
-                {eventSettings.show_live_score ? filteredTeams[1].score.toFixed(1) : '***'}
+                {eventSettings.show_live_score ? (Number(filteredTeams[1].score) || 0).toFixed(1) : '***'}
               </span>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function LeaderboardPage() {
             <div className="pt-5 border-t border-indigo-500/20 mt-4 flex items-center justify-between font-mono">
               <span className="text-xs text-slate-300">Aggregate Score</span>
               <span className="text-2xl font-extrabold text-indigo-400">
-                {eventSettings.show_live_score ? filteredTeams[0].score.toFixed(1) : '***'} <span className="text-xs text-slate-400">/ 100</span>
+                {eventSettings.show_live_score ? (Number(filteredTeams[0].score) || 0).toFixed(1) : '***'} <span className="text-xs text-slate-400">/ 100</span>
               </span>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function LeaderboardPage() {
             <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between font-mono">
               <span className="text-xs text-slate-400">Aggregate Score</span>
               <span className="text-xl font-bold text-white">
-                {eventSettings.show_live_score ? filteredTeams[2].score.toFixed(1) : '***'}
+                {eventSettings.show_live_score ? (Number(filteredTeams[2].score) || 0).toFixed(1) : '***'}
               </span>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function LeaderboardPage() {
                         <td className="p-4 text-right font-mono font-bold text-base">
                           {eventSettings.show_live_score ? (
                             <span className="text-white">
-                              {team.score.toFixed(1)}
+                              {(Number(team.score) || 0).toFixed(1)}
                             </span>
                           ) : (
                             <span className="text-slate-600">MASKED</span>
@@ -292,7 +292,7 @@ export default function LeaderboardPage() {
                                       {c.name}
                                     </div>
                                     <div className="flex items-baseline justify-between font-mono">
-                                      <span className="text-base font-bold text-white">{scoreVal.toFixed(1)}</span>
+                                      <span className="text-base font-bold text-white">{(Number(scoreVal) || 0).toFixed(1)}</span>
                                       <span className="text-[10px] text-slate-500">/ {c.max_marks}</span>
                                     </div>
                                     <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">

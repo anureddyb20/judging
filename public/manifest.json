@@ -1,0 +1,16 @@
+{
+  "name": "VICEVERSE Platform",
+  "short_name": "VICEVERSE",
+  "description": "Event Management and Judging Platform for VICEVERSE Hackathon",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#fdbf15",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

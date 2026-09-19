@@ -27,6 +27,10 @@ frontend/.next/
 frontend/out/
 .next/diagnostics
 next-env.d.ts
+AGENTS.md
+CLAUDE.md
+frontend/AGENTS.md
+frontend/CLAUDE.md
 
 
 # Production Builds

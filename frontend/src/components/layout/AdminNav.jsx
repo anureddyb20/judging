@@ -69,17 +69,17 @@ export function AdminNav() {
           <div className="h-4 w-px bg-white/10 hidden sm:block" />
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Lead Admin</span>
-            </span>
-
             <button
+              type="button"
               onClick={logout}
-              title="Logout"
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
+              title="Click to Logout & Return to Landing Page"
+              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-500/10 hover:bg-rose-500/15 border border-emerald-500/20 hover:border-rose-500/40 text-emerald-400 hover:text-rose-300 transition-all cursor-pointer group"
             >
-              <LogOut className="w-4 h-4" />
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 group-hover:bg-rose-400 animate-pulse" />
+                <span>Lead Admin</span>
+              </span>
+              <LogOut className="w-3.5 h-3.5 text-emerald-400/80 group-hover:text-rose-400 transition-colors ml-0.5" />
             </button>
           </div>
         </div>

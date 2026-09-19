@@ -220,6 +220,9 @@ export function DataStoreProvider({ children }) {
     setCurrentUser(null);
     localStorage.removeItem(AUTH_KEY);
     showToast('Session ended successfully', 'info');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   }, [showToast]);
 
   // Submission & Marks Evaluation

@@ -3,20 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDataStore } from '@/lib/dataStore';
-import TerminalHeader from '@/components/layout/TerminalHeader';
 import { 
   Github, 
   ExternalLink, 
   FileText, 
   Video, 
   Save, 
-  Lock, 
   CheckCircle2, 
-  Sliders, 
   ArrowLeft, 
-  Sparkles,
   Layers,
-  HelpCircle
+  Sparkles,
+  HelpCircle,
+  Award,
+  Clock,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,7 +30,6 @@ export default function JudgeEvaluatePage() {
     judges, 
     teams, 
     missions, 
-    submissions, 
     evaluations, 
     rubrics, 
     submitEvaluation,
@@ -40,12 +39,12 @@ export default function JudgeEvaluatePage() {
   const currentJudge = judges.find(j => 
     j.id === currentUser?.id || 
     j.profile_id === currentUser?.id || 
+    j.id === currentUser?.judge_id ||
     j.judge_code === currentUser?.team_code
   ) || judges[0];
 
   const team = teams.find(t => t.id === teamId);
   const mission = missions.find(m => m.id === team?.mission_id);
-  const submission = submissions.find(s => s.team_id === teamId);
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
 
   // Existing evaluation if any
@@ -62,8 +61,8 @@ export default function JudgeEvaluatePage() {
       setOverallFeedback(existingEval.feedback || '');
       const sMap = {};
       const cMap = {};
-      if (existingEval.scores && Array.isArray(existingEval.scores)) {
-        existingEval.scores.forEach(s => {
+      if (existingEval.criteria_scores && Array.isArray(existingEval.criteria_scores)) {
+        existingEval.criteria_scores.forEach(s => {
           sMap[s.criterion_id] = s.score;
           cMap[s.criterion_id] = s.comment || '';
         });
@@ -71,10 +70,10 @@ export default function JudgeEvaluatePage() {
       setScoresMap(sMap);
       setCommentMap(cMap);
     } else {
-      // Default to 15.0 marks for each criterion on new review
+      // Default to 20.0 marks for each 25 pt criterion on new review
       const defaultScores = {};
       activeRubric?.criteria?.forEach(c => {
-        defaultScores[c.id] = 16.0;
+        defaultScores[c.id] = Math.round(c.max_marks * 0.8);
       });
       setScoresMap(defaultScores);
     }
@@ -82,10 +81,10 @@ export default function JudgeEvaluatePage() {
 
   if (!team) {
     return (
-      <div className="p-8 text-center font-mono text-zinc-400">
-        Operative squad not found.
+      <div className="p-12 text-center text-slate-400">
+        Team not found.
         <div className="mt-4">
-          <Link href="/judge/dashboard" className="rockstar-btn text-xs">Return to Matrix</Link>
+          <Link href="/judge/dashboard" className="btn-primary text-xs">Return to Dashboard</Link>
         </div>
       </div>
     );
@@ -98,180 +97,188 @@ export default function JudgeEvaluatePage() {
   }, 0);
 
   const handleScoreChange = (criterionId, val, maxMarks) => {
-    const num = Math.max(0, Math.min(Number(val) || 0, maxMarks));
+    const num = Math.min(maxMarks, Math.max(0, Number(val) || 0));
     setScoresMap(prev => ({ ...prev, [criterionId]: num }));
   };
 
-  const handleCommentChange = (criterionId, comment) => {
-    setCommentMap(prev => ({ ...prev, [criterionId]: comment }));
-  };
-
-  const handleSave = (isDraft = false) => {
+  const handleSave = (isDraft) => {
     setIsSubmitting(true);
-
-    const scoresArray = (activeRubric?.criteria || []).map(c => ({
+    const criteriaScoresList = (activeRubric?.criteria || []).map(c => ({
       criterion_id: c.id,
       score: Number(scoresMap[c.id]) || 0,
       comment: commentMap[c.id] || ''
     }));
 
-    submitEvaluation(
-      currentJudge.id,
-      team.id,
-      activeRubric.id,
-      scoresArray,
-      overallFeedback,
-      isDraft
-    );
+    submitEvaluation({
+      id: existingEval?.id,
+      judge_id: currentJudge.id,
+      team_id: team.id,
+      rubric_id: activeRubric.id,
+      is_draft: isDraft,
+      feedback: overallFeedback,
+      criteria_scores: criteriaScoresList
+    });
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (!isDraft) {
-        router.push('/judge/dashboard');
-      }
-    }, 400);
+    setIsSubmitting(false);
+    if (!isDraft) {
+      router.push('/judge/dashboard');
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link 
-          href="/judge/dashboard" 
-          className="text-xs font-mono text-cyan-400 hover:text-white flex items-center gap-1.5"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>BACK TO OPERATIVE MATRIX</span>
-        </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Navigation & Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/judge/dashboard"
+            className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="badge-indigo">{team.team_code}</span>
+              <span className="text-xs text-slate-400 font-mono">{team.room} · {team.pitch_slot}</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight mt-0.5">
+              {team.name}
+            </h1>
+          </div>
+        </div>
 
-        <span className="text-xs font-mono text-zinc-500">
-          RUBRIC: {activeRubric?.name}
-        </span>
+        {/* Live Score Counter Pill */}
+        <div className="bg-slate-900 border border-indigo-500/30 p-3 rounded-xl flex items-center gap-4 self-start sm:self-auto">
+          <div>
+            <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">CURRENT SCORE</div>
+            <div className="text-2xl font-extrabold font-mono text-indigo-400">
+              {calculatedTotal.toFixed(1)} <span className="text-xs text-slate-400">/ 100</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleSave(true)}
+              disabled={isSubmitting}
+              className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+            >
+              <Save className="w-3.5 h-3.5 text-slate-400" />
+              <span>Save Draft</span>
+            </button>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={isSubmitting}
+              className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Submit Final</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <TerminalHeader
-        title={`EVALUATING // ${team.name}`}
-        subtitle={`SQUAD: ${team.team_code} · MISSION: ${mission?.title || 'GENERAL'} · JUDGE: ${currentJudge?.name}`}
-        badgeText={`EVALUATION COCKPIT // ${team.team_code}`}
-        badgeColor="cyan"
-      />
-
-      {/* Dual Pane Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Pane: Project Dossier (5 cols) */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="bracket-corners rockstar-card p-5 border border-zinc-800 bg-zinc-950/90 space-y-4">
-            <div className="border-b border-zinc-800 pb-3">
-              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-bold">
-                OPERATIVE PROJECT BLUEPRINT
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Project Submission Dossier */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="clean-card p-6 space-y-5">
+            <div>
+              <div className="text-[10px] font-mono text-indigo-400 font-bold uppercase mb-1">
+                PROBLEM TRACK & CATEGORY
               </div>
-              <h2 className="text-xl font-heading font-black text-white mt-1">
-                {submission?.project_title || 'Blueprint Title Not Registered'}
+              <h2 className="text-lg font-bold text-white">
+                {mission?.title || 'Open Innovation'}
               </h2>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                {mission?.description}
+              </p>
             </div>
 
-            {/* Problem & Solution */}
-            <div className="space-y-3 font-mono text-xs">
-              <div>
-                <span className="text-[11px] text-yellow-400 font-bold uppercase block mb-1">
-                  PROBLEM STATEMENT:
-                </span>
-                <p className="text-zinc-300 bg-black/60 p-3 border border-zinc-800 leading-relaxed rounded">
-                  {submission?.problem_statement || 'No problem statement recorded.'}
-                </p>
+            {/* Team Members */}
+            <div className="pt-4 border-t border-white/5 space-y-2">
+              <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">TEAM MEMBERS</div>
+              <div className="space-y-1.5">
+                {team.members?.map((m, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs p-2 rounded bg-slate-950/60 border border-white/5">
+                    <span className="font-semibold text-white">{m.name}</span>
+                    <span className="text-[11px] text-slate-400">{m.role}</span>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div>
-                <span className="text-[11px] text-cyan-400 font-bold uppercase block mb-1">
-                  PROPOSED SOLUTION & ARCHITECTURE:
-                </span>
-                <p className="text-zinc-300 bg-black/60 p-3 border border-zinc-800 leading-relaxed rounded">
-                  {submission?.solution || 'No architectural details registered.'}
-                </p>
-              </div>
+            {/* Problem Statement */}
+            <div className="pt-4 border-t border-white/5 space-y-1.5">
+              <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">PROBLEM STATEMENT</div>
+              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-lg border border-white/5">
+                {team.submission?.problem_statement || 'No problem statement recorded.'}
+              </p>
+            </div>
 
-              {/* Tech Stack */}
-              <div>
-                <span className="text-[11px] text-zinc-400 font-bold uppercase block mb-1.5">
-                  TECH STACK & ASSETS:
-                </span>
+            {/* Proposed Solution */}
+            <div className="pt-4 border-t border-white/5 space-y-1.5">
+              <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">PROPOSED SOLUTION ARCHITECTURE</div>
+              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-lg border border-white/5">
+                {team.submission?.solution || 'No solution details submitted.'}
+              </p>
+            </div>
+
+            {/* Tech Stack */}
+            {team.submission?.tech_stack?.length > 0 && (
+              <div className="pt-4 border-t border-white/5 space-y-2">
+                <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">TECH STACK</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {submission?.tech_stack?.length ? (
-                    submission.tech_stack.map((t, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-zinc-900 border border-zinc-700 text-yellow-300 text-[10px] rounded">
-                        {t}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-zinc-600">Standard Stack</span>
-                  )}
+                  {team.submission.tech_stack.map((t, i) => (
+                    <span key={i} className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-900 text-slate-300 border border-white/10">
+                      {t}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* External Links */}
-            <div className="pt-3 border-t border-zinc-800 space-y-2 font-mono text-xs">
-              <div className="text-[11px] text-zinc-400 font-bold uppercase">
-                INSPECTION REPOSITORIES & DEMOS:
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {submission?.github_url && (
+            {/* Links & Attachments */}
+            <div className="pt-4 border-t border-white/5 space-y-2">
+              <div className="text-[10px] font-mono text-slate-400 font-bold uppercase">PROJECT ATTACHMENTS</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {team.submission?.deck_url && (
                   <a
-                    href={submission.github_url}
+                    href={team.submission.deck_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded flex items-center justify-between transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Github className="w-3.5 h-3.5" />
-                      <span>Code Repo</span>
-                    </span>
-                    <ExternalLink className="w-3 h-3 text-zinc-400" />
-                  </a>
-                )}
-
-                {submission?.demo_url && (
-                  <a
-                    href={submission.demo_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2.5 bg-cyan-950/40 hover:bg-cyan-900/40 border border-cyan-800 text-cyan-300 rounded flex items-center justify-between transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Live Demo</span>
-                    </span>
-                    <ExternalLink className="w-3 h-3 text-cyan-400" />
-                  </a>
-                )}
-
-                {submission?.file_url && (
-                  <a
-                    href={submission.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2.5 bg-yellow-950/40 hover:bg-yellow-900/40 border border-yellow-800 text-yellow-300 rounded flex items-center justify-between transition-colors"
+                    className="p-2.5 rounded bg-slate-950 hover:bg-slate-900 border border-white/10 text-indigo-300 flex items-center justify-between"
                   >
                     <span className="flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5" />
                       <span>Pitch Deck PDF</span>
                     </span>
-                    <ExternalLink className="w-3 h-3 text-yellow-400" />
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
-
-                {submission?.video_url && (
+                {team.submission?.github_url && (
                   <a
-                    href={submission.video_url}
+                    href={team.submission.github_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2.5 bg-red-950/40 hover:bg-red-900/40 border border-red-800 text-red-300 rounded flex items-center justify-between transition-colors"
+                    className="p-2.5 rounded bg-slate-950 hover:bg-slate-900 border border-white/10 text-indigo-300 flex items-center justify-between"
                   >
                     <span className="flex items-center gap-1.5">
-                      <Video className="w-3.5 h-3.5" />
-                      <span>Video Demo</span>
+                      <Github className="w-3.5 h-3.5" />
+                      <span>GitHub Repo</span>
                     </span>
-                    <ExternalLink className="w-3 h-3 text-red-400" />
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                {team.submission?.demo_url && (
+                  <a
+                    href={team.submission.demo_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2.5 rounded bg-slate-950 hover:bg-slate-900 border border-white/10 text-emerald-300 flex items-center justify-between col-span-2"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Live Prototype / Demo URL</span>
+                    </span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
@@ -279,129 +286,144 @@ export default function JudgeEvaluatePage() {
           </div>
         </div>
 
-        {/* Right Pane: Rubric Scoring Cockpit (7 cols) */}
-        <div className="lg:col-span-7 space-y-5">
-          {/* Live Score Counter Pill */}
-          <div className="bracket-corners rockstar-card p-5 border-2 border-cyan-500/50 bg-gradient-to-r from-cyan-950/40 to-black flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
-                EVALUATION SCORE ACCUMULATOR
-              </div>
-              <div className="text-xs font-mono text-zinc-400">
-                Adjust sliders or direct numeric inputs for each criterion below.
-              </div>
+        {/* Right Column: Multi-Criterion Marks Card */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="clean-card p-6 space-y-6">
+            <div className="border-b border-white/5 pb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Award className="w-5 h-5 text-indigo-400" />
+                <span>Rubric Criterion Grading</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Enter marks (0 to max) and criterion-specific observations.
+              </p>
             </div>
 
-            <div className="text-right">
-              <div className="text-4xl font-heading font-black text-cyan-300 text-glow-cyan">
-                {calculatedTotal.toFixed(1)} <span className="text-base text-zinc-500">/ 100</span>
-              </div>
-            </div>
-          </div>
+            {/* Criteria List */}
+            <div className="space-y-6">
+              {activeRubric?.criteria?.map((criterion, idx) => {
+                const currentScore = scoresMap[criterion.id] ?? 0;
+                const maxMarks = criterion.max_marks;
 
-          {/* Criteria Sliders */}
-          <div className="space-y-4">
-            {activeRubric?.criteria?.map((criterion, idx) => {
-              const currentVal = scoresMap[criterion.id] !== undefined ? scoresMap[criterion.id] : 0;
-
-              return (
-                <div 
-                  key={criterion.id}
-                  className="bracket-corners rockstar-card p-5 border border-zinc-800 bg-zinc-950 space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded bg-cyan-950 text-cyan-300 text-[10px] font-mono font-bold flex items-center justify-center border border-cyan-800">
-                          {idx + 1}
-                        </span>
-                        <h3 className="font-heading font-black text-white text-base">
-                          {criterion.name}
-                        </h3>
+                return (
+                  <div
+                    key={criterion.id}
+                    className="p-5 rounded-xl bg-slate-900/90 border border-white/5 space-y-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-bold flex items-center justify-center font-mono">
+                            {idx + 1}
+                          </span>
+                          <h3 className="text-sm font-bold text-white">
+                            {criterion.name}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed pl-7">
+                          {criterion.description}
+                        </p>
                       </div>
-                      <p className="font-mono text-xs text-zinc-400 mt-1">
-                        {criterion.description}
-                      </p>
+
+                      {/* Marks Display Pill */}
+                      <div className="text-right shrink-0">
+                        <span className="text-lg font-mono font-extrabold text-indigo-400">
+                          {currentScore}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400"> / {maxMarks}</span>
+                      </div>
                     </div>
 
-                    {/* Numeric Input */}
-                    <div className="flex items-center gap-1.5 shrink-0 font-mono">
+                    {/* Interactive Slider + Quick Buttons */}
+                    <div className="pl-7 space-y-3">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="0"
+                          max={maxMarks}
+                          step="1"
+                          value={currentScore}
+                          onChange={(e) => handleScoreChange(criterion.id, e.target.value, maxMarks)}
+                          className="flex-1"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max={maxMarks}
+                          value={currentScore}
+                          onChange={(e) => handleScoreChange(criterion.id, e.target.value, maxMarks)}
+                          className="w-16 p-1 text-center font-mono font-bold text-sm bg-slate-950 border border-white/10 rounded text-white"
+                        />
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-mono text-slate-400">Presets:</span>
+                        {[
+                          { label: 'Fair (15)', val: Math.round(maxMarks * 0.6) },
+                          { label: 'Good (20)', val: Math.round(maxMarks * 0.8) },
+                          { label: 'Excellent (23)', val: Math.round(maxMarks * 0.92) },
+                          { label: 'Max (25)', val: maxMarks }
+                        ].map((preset, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => handleScoreChange(criterion.id, preset.val, maxMarks)}
+                            className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Criterion Comment */}
                       <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max={criterion.max_marks}
-                        value={currentVal}
-                        onChange={(e) => handleScoreChange(criterion.id, e.target.value, criterion.max_marks)}
-                        className="hud-input w-20 text-center text-base font-black text-cyan-300 py-1"
+                        type="text"
+                        placeholder={`Optional comments for ${criterion.name}...`}
+                        value={commentMap[criterion.id] || ''}
+                        onChange={(e) => setCommentMap(prev => ({ ...prev, [criterion.id]: e.target.value }))}
+                        className="form-input text-xs py-1.5"
                       />
-                      <span className="text-xs text-zinc-500">/ {criterion.max_marks}</span>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Range Slider */}
-                  <div className="pt-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max={criterion.max_marks}
-                      step="0.5"
-                      value={currentVal}
-                      onChange={(e) => handleScoreChange(criterion.id, e.target.value, criterion.max_marks)}
-                      className="w-full accent-[var(--cyan)] bg-zinc-800 h-2 rounded cursor-pointer"
-                    />
-                  </div>
+            {/* Overall Constructive Feedback */}
+            <div className="pt-4 border-t border-white/5 space-y-2">
+              <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                Overall Judge Feedback & Recommendations for the Team:
+              </label>
+              <textarea
+                rows={4}
+                value={overallFeedback}
+                onChange={(e) => setOverallFeedback(e.target.value)}
+                placeholder="Share key strengths of the pitch, technical recommendations, and areas for improvement..."
+                className="form-input text-xs resize-none"
+              />
+            </div>
 
-                  {/* Criterion Note Input */}
-                  <div>
-                    <input
-                      type="text"
-                      placeholder={`Add specific notes on ${criterion.name.toLowerCase()}...`}
-                      value={commentMap[criterion.id] || ''}
-                      onChange={(e) => handleCommentChange(criterion.id, e.target.value)}
-                      className="hud-input text-xs py-1.5 text-zinc-300 placeholder:text-zinc-600 bg-black/40"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Qualitative Feedback */}
-          <div className="bracket-corners rockstar-card p-5 border border-zinc-800 bg-zinc-950 space-y-2 font-mono text-xs">
-            <label className="block text-zinc-300 font-bold uppercase">
-              OVERALL SYNDICATE FEEDBACK & RECOMMENDATIONS:
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Provide constructive tactical commentary on strengths, vulnerabilities, and potential next steps..."
-              value={overallFeedback}
-              onChange={(e) => setOverallFeedback(e.target.value)}
-              className="hud-input resize-none"
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSave(true)}
-              className="w-full sm:w-auto rockstar-btn rockstar-btn-outline text-xs py-3 px-6 flex items-center justify-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              <span>SAVE DRAFT</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSave(false)}
-              className="w-full sm:w-auto rockstar-btn rockstar-btn-cyan text-xs py-3 px-8 flex items-center justify-center gap-2"
-            >
-              <Lock className="w-4 h-4" />
-              <span>LOCK & SUBMIT OFFICIAL EVALUATION</span>
-            </button>
+            {/* Actions */}
+            <div className="pt-4 border-t border-white/5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                disabled={isSubmitting}
+                className="btn-secondary text-xs py-2.5 px-4"
+              >
+                Save as Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                disabled={isSubmitting}
+                className="btn-primary text-xs py-2.5 px-6 flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Submit Final Scorecard ({calculatedTotal.toFixed(1)} / 100)</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

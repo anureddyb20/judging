@@ -236,7 +236,7 @@ export default function LandingPage() {
                 <div className="pt-4 border-t border-zinc-900">
                   <div className="text-[10px] font-mono text-zinc-500 mb-1 font-bold">CORE FOCUS:</div>
                   <div className="flex flex-wrap gap-1">
-                    {mission.core_focus.slice(0, 2).map((tag, i) => (
+                    {(mission.core_focus || []).slice(0, 2).map((tag, i) => (
                       <span key={i} className="text-[10px] font-mono bg-zinc-900 text-zinc-300 px-2 py-0.5 border border-zinc-800">
                         {tag}
                       </span>

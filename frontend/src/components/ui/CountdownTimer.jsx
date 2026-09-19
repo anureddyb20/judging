@@ -5,9 +5,12 @@ import { formatTimeRemaining } from '@/lib/utils';
 import { Clock } from 'lucide-react';
 
 export default function CountdownTimer({ targetDate, label = 'SUBMISSION VAULT CLOSES IN' }) {
-  const [timeLeft, setTimeLeft] = useState(formatTimeRemaining(targetDate));
+  const [mounted, setMounted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ hours: '00', minutes: '00', seconds: '00', isExpired: false });
 
   useEffect(() => {
+    setMounted(true);
+    setTimeLeft(formatTimeRemaining(targetDate));
     const interval = setInterval(() => {
       setTimeLeft(formatTimeRemaining(targetDate));
     }, 1000);

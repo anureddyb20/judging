@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   INITIAL_EVENT_SETTINGS,
   INITIAL_MISSIONS,
@@ -16,11 +16,12 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_AUDIT_LOGS
 } from './mockData';
+import { calculateEvaluationScore } from './scoring';
 import { supabase, isSupabaseConfigured } from './supabase/client';
 
 const DataStoreContext = createContext(null);
 
-const STORAGE_KEY = 'viceverse_store_v1';
+const STORAGE_KEY = 'viceverse_store_v2';
 const AUTH_KEY = 'viceverse_auth_user';
 
 export function DataStoreProvider({ children }) {
@@ -45,39 +46,80 @@ export function DataStoreProvider({ children }) {
 
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Initialize Store from localStorage if available
+  // Initialize Store from localStorage or Supabase
   useEffect(() => {
-    try {
-      const savedAuth = localStorage.getItem(AUTH_KEY);
-      if (savedAuth) {
-        setCurrentUser(JSON.parse(savedAuth));
-      } else {
-        // Default to admin for seamless first load preview
-        setCurrentUser(INITIAL_PROFILES[0]);
-      }
+    async function hydrate() {
+      try {
+        const savedAuth = localStorage.getItem(AUTH_KEY);
+        if (savedAuth) {
+          try {
+            setCurrentUser(JSON.parse(savedAuth));
+          } catch (e) {
+            console.warn('Failed to parse saved auth', e);
+          }
+        }
 
-      const savedStore = localStorage.getItem(STORAGE_KEY);
-      if (savedStore) {
-        const parsed = JSON.parse(savedStore);
-        if (parsed.eventSettings) setEventSettings(parsed.eventSettings);
-        if (parsed.missions) setMissions(parsed.missions);
-        if (parsed.rubrics) setRubrics(parsed.rubrics);
-        if (parsed.profiles) setProfiles(parsed.profiles);
-        if (parsed.judges) setJudges(parsed.judges);
-        if (parsed.teams) setTeams(parsed.teams);
-        if (parsed.submissions) setSubmissions(parsed.submissions);
-        if (parsed.assignments) setAssignments(parsed.assignments);
-        if (parsed.evaluations) setEvaluations(parsed.evaluations);
-        if (parsed.announcements) setAnnouncements(parsed.announcements);
-        if (parsed.schedule) setSchedule(parsed.schedule);
-        if (parsed.notifications) setNotifications(parsed.notifications);
-        if (parsed.auditLogs) setAuditLogs(parsed.auditLogs);
+        // If Supabase is configured, fetch live records
+        if (isSupabaseConfigured && supabase) {
+          try {
+            const [
+              { data: dbSettings },
+              { data: dbMissions },
+              { data: dbTeams },
+              { data: dbJudges },
+              { data: dbEvals },
+              { data: dbSubs },
+              { data: dbAnns }
+            ] = await Promise.all([
+              supabase.from('event_settings').select('*').single(),
+              supabase.from('missions').select('*'),
+              supabase.from('teams').select('*, members:team_members(*)'),
+              supabase.from('judges').select('*'),
+              supabase.from('evaluations').select('*, scores:evaluation_scores(*)'),
+              supabase.from('submissions').select('*'),
+              supabase.from('announcements').select('*').order('created_at', { ascending: false })
+            ]);
+
+            if (dbSettings) setEventSettings(dbSettings);
+            if (dbMissions && dbMissions.length) setMissions(dbMissions);
+            if (dbTeams && dbTeams.length) setTeams(dbTeams);
+            if (dbJudges && dbJudges.length) setJudges(dbJudges);
+            if (dbEvals && dbEvals.length) setEvaluations(dbEvals);
+            if (dbSubs && dbSubs.length) setSubmissions(dbSubs);
+            if (dbAnns && dbAnns.length) setAnnouncements(dbAnns);
+            setAuthLoading(false);
+            return;
+          } catch (dbErr) {
+            console.warn('Supabase fetch failed, falling back to local cache:', dbErr);
+          }
+        }
+
+        // Local cache fallback
+        const savedStore = localStorage.getItem(STORAGE_KEY);
+        if (savedStore) {
+          const parsed = JSON.parse(savedStore);
+          if (parsed.eventSettings) setEventSettings(parsed.eventSettings);
+          if (parsed.missions) setMissions(parsed.missions);
+          if (parsed.rubrics) setRubrics(parsed.rubrics);
+          if (parsed.profiles) setProfiles(parsed.profiles);
+          if (parsed.judges) setJudges(parsed.judges);
+          if (parsed.teams) setTeams(parsed.teams);
+          if (parsed.submissions) setSubmissions(parsed.submissions);
+          if (parsed.assignments) setAssignments(parsed.assignments);
+          if (parsed.evaluations) setEvaluations(parsed.evaluations);
+          if (parsed.announcements) setAnnouncements(parsed.announcements);
+          if (parsed.schedule) setSchedule(parsed.schedule);
+          if (parsed.notifications) setNotifications(parsed.notifications);
+          if (parsed.auditLogs) setAuditLogs(parsed.auditLogs);
+        }
+      } catch (e) {
+        console.warn('Error hydrating viceverse store:', e);
+      } finally {
+        setAuthLoading(false);
       }
-    } catch (e) {
-      console.warn('Error hydrating viceverse store:', e);
-    } finally {
-      setAuthLoading(false);
     }
+
+    hydrate();
   }, []);
 
   // Save to localStorage on state changes
@@ -109,15 +151,15 @@ export function DataStoreProvider({ children }) {
     schedule, notifications, auditLogs, authLoading
   ]);
 
-  const showToast = (message, type = 'info') => {
+  const showToast = useCallback((message, type = 'info') => {
     setToastMessage({ message, type, id: Date.now() });
     setTimeout(() => {
       setToastMessage(prev => (prev?.message === message ? null : prev));
     }, 4000);
-  };
+  }, []);
 
   // Auth Operations
-  const loginAs = (role, identifier) => {
+  const loginAs = useCallback((role, identifier) => {
     let profile = null;
     if (role === 'admin') {
       profile = profiles.find(p => p.role === 'admin') || INITIAL_PROFILES[0];
@@ -125,16 +167,17 @@ export function DataStoreProvider({ children }) {
       const jdg = judges.find(j => j.id === identifier || j.judge_code === identifier || j.profile_id === identifier);
       if (jdg) {
         profile = profiles.find(p => p.id === jdg.profile_id) || {
-          id: jdg.profile_id,
+          id: jdg.profile_id || `p_${jdg.id}`,
           email: `${jdg.judge_code.toLowerCase()}@viceverse.com`,
           role: 'judge',
-          full_name: jdg.name
+          full_name: jdg.name,
+          judge_id: jdg.id
         };
       } else {
         profile = profiles.find(p => p.role === 'judge') || INITIAL_PROFILES[1];
       }
     } else if (role === 'team') {
-      const tm = teams.find(t => t.id === identifier || t.team_code === identifier || t.name.toLowerCase() === identifier.toLowerCase());
+      const tm = teams.find(t => t.id === identifier || t.team_code === identifier || t.name.toLowerCase() === (identifier || '').toLowerCase());
       if (tm) {
         profile = profiles.find(p => p.id === tm.leader_profile_id || p.team_code === tm.team_code) || {
           id: `p_${tm.id}`,
@@ -156,16 +199,16 @@ export function DataStoreProvider({ children }) {
       return profile;
     }
     return null;
-  };
+  }, [profiles, judges, teams, showToast]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setCurrentUser(null);
     localStorage.removeItem(AUTH_KEY);
     showToast('CLEARANCE REVOKED: Logged out from terminal', 'info');
-  };
+  }, [showToast]);
 
   // Audit Logger Helper
-  const logAudit = (action, entityType, entityId, details = {}) => {
+  const logAudit = useCallback((action, entityType, entityId, details = {}) => {
     const newAudit = {
       id: `aud_${Date.now()}`,
       user_id: currentUser?.id || 'sys',
@@ -177,18 +220,20 @@ export function DataStoreProvider({ children }) {
       created_at: new Date().toISOString()
     };
     setAuditLogs(prev => [newAudit, ...prev]);
-  };
+  }, [currentUser]);
 
   // Event Settings
-  const updateEventSettings = (newSettings) => {
-    const updated = { ...eventSettings, ...newSettings, updated_at: new Date().toISOString() };
-    setEventSettings(updated);
+  const updateEventSettings = useCallback((newSettings) => {
+    setEventSettings(prev => {
+      const updated = { ...prev, ...newSettings, updated_at: new Date().toISOString() };
+      return updated;
+    });
     logAudit('UPDATE_SETTINGS', 'event_settings', '1', newSettings);
     showToast('Event settings calibrated successfully', 'success');
-  };
+  }, [logAudit, showToast]);
 
   // Submissions
-  const updateSubmission = (teamId, submissionData) => {
+  const updateSubmission = useCallback((teamId, submissionData) => {
     setSubmissions(prev => {
       const index = prev.findIndex(s => s.team_id === teamId);
       const updatedItem = {
@@ -210,18 +255,15 @@ export function DataStoreProvider({ children }) {
 
     logAudit('SUBMISSION_UPSERT', 'submissions', teamId, { title: submissionData.project_title });
     showToast('Project blueprint saved to tactical vault', 'success');
-  };
+  }, [logAudit, showToast]);
 
-  // Evaluation submission
-  const submitEvaluation = (judgeId, teamId, rubricId, scores, feedback, isDraft = false) => {
+  // Evaluation submission using authoritative scoring engine
+  const submitEvaluation = useCallback((judgeId, teamId, rubricId, scores, feedback, isDraft = false) => {
     const activeRubric = rubrics.find(r => r.id === rubricId) || rubrics[0];
     const criteria = activeRubric?.criteria || [];
 
-    // Calculate total score
-    let totalScore = 0;
-    if (scores && scores.length) {
-      totalScore = scores.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-    }
+    // Authoritative score calculation
+    const totalScore = calculateEvaluationScore(scores, criteria, eventSettings.scoring_method);
 
     const evaluationId = `ev_${Date.now()}`;
     const newEvaluation = {
@@ -272,15 +314,15 @@ export function DataStoreProvider({ children }) {
     });
 
     showToast(isDraft ? 'Evaluation draft saved' : 'Evaluation submitted and locked', 'success');
-  };
+  }, [rubrics, eventSettings.scoring_method, teams, logAudit, showToast]);
 
   // Team Management
-  const addTeam = (teamData) => {
+  const addTeam = useCallback((teamData) => {
     const newTeam = {
       id: `t_${Date.now()}`,
       team_code: teamData.team_code || `VV-${String(teams.length + 1).padStart(3, '0')}`,
       name: teamData.name,
-      mission_id: teamData.mission_id || missions[0].id,
+      mission_id: teamData.mission_id || missions[0]?.id,
       status: 'active',
       created_at: new Date().toISOString(),
       members: teamData.members || []
@@ -289,25 +331,25 @@ export function DataStoreProvider({ children }) {
     logAudit('CREATE_TEAM', 'teams', newTeam.id, { name: newTeam.name });
     showToast(`Team [${newTeam.team_code}] ${newTeam.name} onboarded`, 'success');
     return newTeam;
-  };
+  }, [teams.length, missions, logAudit, showToast]);
 
-  const updateTeam = (teamId, data) => {
+  const updateTeam = useCallback((teamId, data) => {
     setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, ...data } : t)));
     logAudit('UPDATE_TEAM', 'teams', teamId, data);
     showToast('Team telemetry updated', 'success');
-  };
+  }, [logAudit, showToast]);
 
-  const deleteTeam = (teamId) => {
+  const deleteTeam = useCallback((teamId) => {
     setTeams(prev => prev.filter(t => t.id !== teamId));
     setSubmissions(prev => prev.filter(s => s.team_id !== teamId));
     setEvaluations(prev => prev.filter(e => e.team_id !== teamId));
     setAssignments(prev => prev.filter(a => a.team_id !== teamId));
     logAudit('DELETE_TEAM', 'teams', teamId);
     showToast('Team removed from roster', 'info');
-  };
+  }, [logAudit, showToast]);
 
   // Judge Management
-  const addJudge = (judgeData) => {
+  const addJudge = useCallback((judgeData) => {
     const newJudge = {
       id: `j_${Date.now()}`,
       profile_id: `p_j_${Date.now()}`,
@@ -321,23 +363,23 @@ export function DataStoreProvider({ children }) {
     logAudit('CREATE_JUDGE', 'judges', newJudge.id, { name: newJudge.name });
     showToast(`Syndicate Judge [${newJudge.judge_code}] authorized`, 'success');
     return newJudge;
-  };
+  }, [judges.length, logAudit, showToast]);
 
-  const updateJudge = (judgeId, data) => {
+  const updateJudge = useCallback((judgeId, data) => {
     setJudges(prev => prev.map(j => (j.id === judgeId ? { ...j, ...data } : j)));
     logAudit('UPDATE_JUDGE', 'judges', judgeId, data);
     showToast('Judge clearance updated', 'success');
-  };
+  }, [logAudit, showToast]);
 
-  const deleteJudge = (judgeId) => {
+  const deleteJudge = useCallback((judgeId) => {
     setJudges(prev => prev.filter(j => j.id !== judgeId));
     setAssignments(prev => prev.filter(a => a.judge_id !== judgeId));
     logAudit('DELETE_JUDGE', 'judges', judgeId);
     showToast('Judge decommissioned', 'info');
-  };
+  }, [logAudit, showToast]);
 
   // Assignment Management
-  const assignJudgeToTeam = (judgeId, teamId) => {
+  const assignJudgeToTeam = useCallback((judgeId, teamId) => {
     setAssignments(prev => {
       const exists = prev.some(a => a.judge_id === judgeId && a.team_id === teamId);
       if (exists) return prev;
@@ -350,14 +392,14 @@ export function DataStoreProvider({ children }) {
       }];
     });
     logAudit('ASSIGN_JUDGE', 'judge_assignments', `${judgeId}_${teamId}`);
-  };
+  }, [logAudit]);
 
-  const removeAssignment = (judgeId, teamId) => {
+  const removeAssignment = useCallback((judgeId, teamId) => {
     setAssignments(prev => prev.filter(a => !(a.judge_id === judgeId && a.team_id === teamId)));
     logAudit('UNASSIGN_JUDGE', 'judge_assignments', `${judgeId}_${teamId}`);
-  };
+  }, [logAudit]);
 
-  const batchAutoAssign = (judgesPerTeam = 2) => {
+  const batchAutoAssign = useCallback((judgesPerTeam = 2) => {
     const activeJudges = judges.filter(j => j.is_active);
     if (!activeJudges.length || !teams.length) {
       showToast('Insufficient active judges or teams for auto assignment', 'warning');
@@ -370,7 +412,6 @@ export function DataStoreProvider({ children }) {
     for (const team of teams) {
       for (let i = 0; i < judgesPerTeam; i++) {
         const judge = activeJudges[judgeIndex % activeJudges.length];
-        // Check if already assigned
         const existing = assignments.find(a => a.judge_id === judge.id && a.team_id === team.id);
         if (!existing && !newAssignments.some(a => a.judge_id === judge.id && a.team_id === team.id)) {
           newAssignments.push({
@@ -388,17 +429,17 @@ export function DataStoreProvider({ children }) {
     setAssignments(prev => [...prev, ...newAssignments]);
     logAudit('BATCH_AUTO_ASSIGN', 'judge_assignments', 'all', { added: newAssignments.length });
     showToast(`Generated ${newAssignments.length} new evaluation assignments`, 'success');
-  };
+  }, [judges, teams, assignments, logAudit, showToast]);
 
   // Rubrics
-  const updateRubric = (rubricId, updatedData) => {
+  const updateRubric = useCallback((rubricId, updatedData) => {
     setRubrics(prev => prev.map(r => (r.id === rubricId ? { ...r, ...updatedData } : r)));
     logAudit('UPDATE_RUBRIC', 'rubrics', rubricId, updatedData);
     showToast('Rubric calibration updated', 'success');
-  };
+  }, [logAudit, showToast]);
 
   // Announcements
-  const addAnnouncement = (title, content, priority = 'info') => {
+  const addAnnouncement = useCallback((title, content, priority = 'info') => {
     const newAnn = {
       id: `ann_${Date.now()}`,
       title,
@@ -410,23 +451,23 @@ export function DataStoreProvider({ children }) {
     logAudit('CREATE_ANNOUNCEMENT', 'announcements', newAnn.id, { priority });
     showToast(`BROADCAST DISPATCHED: [${priority.toUpperCase()}] ${title}`, 'success');
     return newAnn;
-  };
+  }, [logAudit, showToast]);
 
-  const deleteAnnouncement = (id) => {
+  const deleteAnnouncement = useCallback((id) => {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
     logAudit('DELETE_ANNOUNCEMENT', 'announcements', id);
     showToast('Announcement wiped from dispatch ticker', 'info');
-  };
+  }, [logAudit, showToast]);
 
   // Schedule
-  const updateScheduleItem = (id, data) => {
+  const updateScheduleItem = useCallback((id, data) => {
     setSchedule(prev => prev.map(s => (s.id === id ? { ...s, ...data } : s)));
     logAudit('UPDATE_SCHEDULE', 'event_schedule', id, data);
     showToast('Event timeline updated', 'success');
-  };
+  }, [logAudit, showToast]);
 
   // Reset to default
-  const resetToDefaultData = () => {
+  const resetToDefaultData = useCallback(() => {
     setEventSettings(INITIAL_EVENT_SETTINGS);
     setMissions(INITIAL_MISSIONS);
     setRubrics(INITIAL_RUBRICS);
@@ -442,7 +483,7 @@ export function DataStoreProvider({ children }) {
     setAuditLogs(INITIAL_AUDIT_LOGS);
     localStorage.removeItem(STORAGE_KEY);
     showToast('SYSTEM RESTORE: Factory defaults loaded', 'success');
-  };
+  }, [showToast]);
 
   return (
     <DataStoreContext.Provider

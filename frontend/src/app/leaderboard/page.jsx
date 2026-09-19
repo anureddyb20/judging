@@ -259,7 +259,7 @@ export default function LeaderboardPage() {
                               {activeRubric?.criteria?.map(c => {
                                 const criterionIntel = team.criteriaBreakdown?.[c.id];
                                 const scoreVal = criterionIntel ? criterionIntel.average : 0;
-                                const pct = (scoreVal / c.max_marks) * 100;
+                                const pct = c.max_marks > 0 ? (scoreVal / c.max_marks) * 100 : 0;
 
                                 return (
                                   <div key={c.id} className="p-3 bg-zinc-900/60 border border-zinc-800 rounded">

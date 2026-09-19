@@ -1,55 +1,71 @@
 // ==============================================================================
-// VICEVERSE AUTHORITATIVE SCORING ENGINE
+// VICEVERSE AUTHORITATIVE SCORING ENGINE (Shared Standard)
 // ==============================================================================
 
 /**
- * Calculates total score for an evaluation based on rubric criteria
- * @param {Array} scores - Array of { criterion_id, score }
- * @param {Array} criteria - Array of rubric criteria
- * @param {string} scoringMethod - 'average' | 'weighted' | 'sum'
- * @returns {number} Calculated total score
+ * Calculates total score for an individual judge's evaluation based on rubric criteria.
+ * 
+ * @param {Array<{ criterion_id: string, score: number|string }>} scores 
+ * @param {Array<{ id: string, max_marks: number, weight?: number }>} criteria 
+ * @param {'average' | 'weighted' | 'sum'} scoringMethod 
+ * @returns {number} Normalized/calculated score (0 - 100)
  */
 export function calculateEvaluationScore(scores = [], criteria = [], scoringMethod = 'average') {
-  if (!scores.length || !criteria.length) return 0;
-
-  const criteriaMap = new Map(criteria.map(c => [c.id, c]));
-  let totalScore = 0;
-  let totalWeight = 0;
-  let validScoreCount = 0;
-
-  for (const s of scores) {
-    const criterion = criteriaMap.get(s.criterion_id);
-    if (!criterion) continue;
-
-    const val = Number(s.score) || 0;
-    const weight = Number(criterion.weight) || 1.0;
-
-    if (scoringMethod === 'weighted') {
-      totalScore += val * weight;
-      totalWeight += weight;
-    } else {
-      totalScore += val;
-      validScoreCount++;
-    }
+  if (!scores || !scores.length || !criteria || !criteria.length) {
+    return 0;
   }
 
+  const criteriaMap = new Map(criteria.map(c => [c.id, c]));
+  let rawSum = 0;
+  let totalMaxMarks = 0;
+  let weightedNumerator = 0;
+  let totalWeight = 0;
+
+  for (const item of scores) {
+    const criterion = criteriaMap.get(item.criterion_id);
+    if (!criterion) continue;
+
+    const maxMarks = Number(criterion.max_marks) || 20;
+    // Strict clamp: score cannot be below 0 or exceed max_marks
+    const val = Math.max(0, Math.min(Number(item.score) || 0, maxMarks));
+    const weight = Number(criterion.weight) > 0 ? Number(criterion.weight) : 1.0;
+
+    rawSum += val;
+    totalMaxMarks += maxMarks;
+
+    // Fractional completion for criterion * weight
+    weightedNumerator += (val / maxMarks) * weight;
+    totalWeight += weight;
+  }
+
+  if (totalMaxMarks === 0) return 0;
+
   if (scoringMethod === 'weighted') {
-    return totalWeight > 0 ? Number((totalScore / totalWeight).toFixed(2)) : 0;
-  } else if (scoringMethod === 'average') {
-    // Normalizes to 100 or sum of max marks
-    return Number(totalScore.toFixed(2));
+    if (totalWeight <= 0) return 0;
+    // Normalized to a standard 100-point scale
+    const weightedFraction = weightedNumerator / totalWeight;
+    return Number((weightedFraction * 100).toFixed(2));
+  } else if (scoringMethod === 'sum') {
+    return Number(rawSum.toFixed(2));
   } else {
-    // Sum
-    return Number(totalScore.toFixed(2));
+    // 'average' mode: If criteria sum to ~100, return rawSum.
+    // If criteria max marks sum to a different base (e.g. 50 or 200), normalize to 100 scale:
+    if (totalMaxMarks === 100) {
+      return Number(rawSum.toFixed(2));
+    }
+    const normalized = (rawSum / totalMaxMarks) * 100;
+    return Number(normalized.toFixed(2));
   }
 }
 
 /**
- * Aggregates all evaluations across multiple judges for a single team
+ * Aggregates all evaluations across multiple judges for a single team.
+ * 
  * @param {string} teamId
- * @param {Array} evaluations - All completed evaluations in system
- * @param {string} scoringMethod - 'average' | 'weighted' | 'sum'
- * @returns {object} { finalScore, judgeCount, evaluations, criteriaAverages }
+ * @param {Array} evaluations - All evaluations in system
+ * @param {Array} criteria - Rubric criteria
+ * @param {'average' | 'weighted' | 'sum'} scoringMethod
+ * @returns {{ finalScore: number, judgeCount: number, evaluations: Array, criteriaAverages: object }}
  */
 export function aggregateTeamScores(teamId, evaluations = [], criteria = [], scoringMethod = 'average') {
   const teamEvals = evaluations.filter(e => e.team_id === teamId && !e.is_draft);
@@ -69,7 +85,7 @@ export function aggregateTeamScores(teamId, evaluations = [], criteria = [], sco
   if (scoringMethod === 'sum') {
     aggregate = scores.reduce((a, b) => a + b, 0);
   } else {
-    // Average or weighted average across judges
+    // Average across judges
     aggregate = scores.reduce((a, b) => a + b, 0) / scores.length;
   }
 
@@ -80,17 +96,17 @@ export function aggregateTeamScores(teamId, evaluations = [], criteria = [], sco
       let sum = 0;
       let count = 0;
       for (const ev of teamEvals) {
-        if (ev.scores) {
+        if (ev.scores && Array.isArray(ev.scores)) {
           const s = ev.scores.find(sc => sc.criterion_id === c.id);
-          if (s && s.score !== undefined) {
-            sum += Number(s.score);
+          if (s && s.score !== undefined && s.score !== null) {
+            sum += Number(s.score) || 0;
             count++;
           }
         }
       }
       criteriaBreakdown[c.id] = {
         name: c.name,
-        max_marks: c.max_marks,
+        max_marks: Number(c.max_marks) || 20,
         average: count > 0 ? Number((sum / count).toFixed(2)) : 0,
         count
       };
@@ -106,12 +122,13 @@ export function aggregateTeamScores(teamId, evaluations = [], criteria = [], sco
 }
 
 /**
- * Calculates complete leaderboard rankings for all teams
+ * Calculates complete leaderboard rankings for all teams with deterministic tie-breaking.
+ * 
  * @param {Array} teams
  * @param {Array} evaluations
  * @param {Array} criteria
  * @param {string} scoringMethod
- * @returns {Array} Ranked list of teams with scores, ranks, and track metadata
+ * @returns {Array} Ranked list of teams
  */
 export function computeLeaderboard(teams = [], evaluations = [], criteria = [], scoringMethod = 'average') {
   const ranked = teams
@@ -126,12 +143,15 @@ export function computeLeaderboard(teams = [], evaluations = [], criteria = [], 
       };
     });
 
-  // Sort descending by score, then alphabetically
+  // Sort descending by score, then by evaluation count, then alphabetically
   ranked.sort((a, b) => {
     if (b.score !== a.score) {
       return b.score - a.score;
     }
-    return a.name.localeCompare(b.name);
+    if (b.evaluationsCount !== a.evaluationsCount) {
+      return b.evaluationsCount - a.evaluationsCount;
+    }
+    return (a.name || '').localeCompare(b.name || '');
   });
 
   // Assign ranks (with handling for ties)
@@ -147,7 +167,7 @@ export function computeLeaderboard(teams = [], evaluations = [], criteria = [], 
 }
 
 /**
- * Calculates telemetry metrics for admin dashboard
+ * Calculates telemetry metrics for admin dashboard.
  */
 export function computeAdminTelemetry(teams = [], judges = [], assignments = [], evaluations = [], submissions = []) {
   const totalTeams = teams.length;

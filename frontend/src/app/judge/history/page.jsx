@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useDataStore } from '@/features/shared/services/storage/dataStore';
 import {
@@ -24,6 +24,11 @@ export default function JudgeHistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'submitted' | 'draft'
   const [activeModalTeam, setActiveModalTeam] = useState(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     currentUser,
@@ -268,7 +273,9 @@ export default function JudgeHistoryPage() {
                       )}
                       <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span suppressHydrationWarning>
+                          {mounted ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        </span>
                       </div>
                     </td>
 

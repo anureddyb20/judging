@@ -1,0 +1,20 @@
+{
+  "name": "viceverse-platform",
+  "version": "1.0.0",
+  "description": "VICEVERSE - Event Management and Live Judging Platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.44.4",
+    "canvas-confetti": "^1.9.3",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.408.0",
+    "next": "^14.2.24",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

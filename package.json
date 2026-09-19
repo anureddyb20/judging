@@ -1,20 +1,18 @@
 {
-  "name": "viceverse-platform",
+  "name": "viceverse-monorepo",
   "version": "1.0.0",
-  "description": "VICEVERSE - Event Management and Live Judging Platform",
+  "description": "VICEVERSE - Event Management, Live Scoring, and Judging Monorepo",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.44.4",
-    "canvas-confetti": "^1.9.3",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.408.0",
-    "next": "^14.2.24",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "node backend/server.js",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend start"
   }
 }
+

@@ -4,7 +4,7 @@ VICEVERSE is an enterprise-grade, cyber-heist styled event management and live j
 
 ```mermaid
 graph TD
-    subgraph Frontend [Presentation Layer - Next.js App Router]
+    subgraph FrontendApp [frontend/ - Next.js Presentation & Client]
         Landing["Cinematic Landing (/)"]
         Missions["Mission Tracks (/missions)"]
         Leaderboard["Live Leaderboard (/leaderboard)"]
@@ -17,13 +17,8 @@ graph TD
         AdminCenter["Admin Command Center (/admin/*)"]
     end
 
-    subgraph BusinessLogic [Core Engine & Services Layer]
-        DataStore["DataStore Context & Local Engine (dataStore.jsx)"]
-        ScoringEngine["Authoritative Scoring Engine (scoring.js)"]
-        Utils["Telemetry & Formatter Utilities (utils.js)"]
-    end
-
-    subgraph BackendAPIs [Next.js Route Handlers / Backend APIs]
+    subgraph BackendServices [backend/ - Standalone REST Server & Services]
+        Server["Express REST Server (server.js)"]
         HealthAPI["/api/health"]
         ScoreAPI["/api/score/calculate"]
         TeamsAPI["/api/teams"]
@@ -31,64 +26,65 @@ graph TD
         SettingsAPI["/api/admin/settings"]
     end
 
-    subgraph DatabaseLayer [Data Persistence & Realtime]
-        SupaPostgres[(PostgreSQL Database + RLS)]
-        SupaRealtime["Supabase Realtime Channel Engine"]
-        SupaStorage["Supabase Storage Buckets (Pitch Decks / Files)"]
+    subgraph DatabaseLayer [db/ - PostgreSQL & Supabase Engine]
+        Schema["schema.sql (DDL + RLS Policies)"]
+        Seed["seed.sql (Default Tracks, Rubrics, Seed Data)"]
+        Client["client.js (Connection Wrapper)"]
     end
 
-    Frontend --> BusinessLogic
-    Frontend --> BackendAPIs
-    BusinessLogic --> DatabaseLayer
-    BackendAPIs --> DatabaseLayer
+    subgraph DocsSuite [docs/ - System Documentation]
+        ArchDoc["ARCHITECTURE.md"]
+        ApiDoc["API_REFERENCE.md"]
+        DbDoc["DATABASE_SCHEMA.md"]
+        DeployDoc["DEPLOYMENT_GUIDE.md"]
+        RolesDoc["USER_ROLES.md"]
+    end
+
+    FrontendApp --> BackendServices
+    FrontendApp --> DatabaseLayer
+    BackendServices --> DatabaseLayer
 ```
 
 ---
 
-## 1. Modular Directory Structure
+## 1. Top-Level Directory Layout
 
 ```
 idea judge/
-├── docs/                             # Full Platform Technical Documentation
+├── frontend/                         # Presentation Layer (Next.js 14 App Router)
+│   ├── public/                       # Static PWA manifest and icons
+│   ├── src/
+│   │   ├── app/                      # Next.js App Router (Pages & Route Handlers)
+│   │   │   ├── (public)/             # Landing, Missions, Schedule, Leaderboard, Rules, Login
+│   │   │   ├── team/                 # Mobile-First Operative Experience
+│   │   │   ├── judge/                # Judge Evaluation Cockpit & Archive
+│   │   │   ├── admin/                # Command Center Telemetry & Controls
+│   │   │   └── api/                  # Built-in Route Handlers
+│   │   ├── components/               # Layouts, Sidebars, Toast, Modals, Brackets
+│   │   ├── lib/                      # DataStore, Scoring Engine, Mock Data, Utilities
+│   │   └── styles/                   # Cyberpunk HUD Design System & Tokens
+│   ├── package.json
+│   └── next.config.mjs
+│
+├── backend/                          # Backend Server & Microservices
+│   ├── server.js                     # Express REST API Server
+│   └── package.json                  # Backend dependencies
+│
+├── db/                               # Database Schemas & Migrations
+│   ├── schema.sql                    # Full PostgreSQL Schema & RLS Policies
+│   ├── seed.sql                      # Tracks, Rubrics, Admin, Judge, and Team Seed
+│   └── client.js                     # Supabase DB Client connector
+│
+├── docs/                             # Technical Documentation Suite
 │   ├── ARCHITECTURE.md               # System design & architecture blueprint
 │   ├── API_REFERENCE.md              # REST API endpoint specifications
 │   ├── DATABASE_SCHEMA.md            # PostgreSQL schema & RLS policies
 │   ├── DEPLOYMENT_GUIDE.md           # Production deployment instructions
 │   └── USER_ROLES.md                 # RBAC Clearance & workflow guide
 │
-├── public/                           # Static Assets & PWA Manifest
-│   └── manifest.json
-│
-├── src/
-│   ├── app/                          # Next.js App Router (Frontend Pages & Backend APIs)
-│   │   ├── (public)/                 # Landing, Missions, Schedule, Leaderboard, Rules, Login
-│   │   ├── team/                     # Mobile-First Operative Experience
-│   │   ├── judge/                    # Judge Evaluation Cockpit & Archive
-│   │   ├── admin/                    # Command Center Telemetry & Controls
-│   │   └── api/                      # Backend API Route Handlers
-│   │
-│   ├── components/                   # Reusable UI & Layout Component Library
-│   │   ├── layout/                   # Navbars, Footers, Headers, Sidebars, BottomDock
-│   │   └── ui/                       # Toast, Countdown, Modals, Cards, ClearanceGuard
-│   │
-│   ├── lib/                          # Business Logic & Infrastructure Connectors
-│   │   ├── dataStore.jsx             # Universal Data Provider & Realtime Engine
-│   │   ├── scoring.js                # Authoritative Multi-Judge Scoring Algorithm
-│   │   ├── mockData.js               # Default Seed & Standalone Demo State
-│   │   ├── utils.js                  # Formatting, Clsx, and Date helpers
-│   │   └── supabase/                 # Supabase Client & Connection Checks
-│   │
-│   └── styles/                       # Cyberpunk HUD Design System
-│       └── globals.css               # Visual Tokens, Animations, & Responsive Grid
-│
-├── supabase/                         # Database Migration Scripts
-│   ├── schema.sql                    # Full PostgreSQL Schema & RLS Policies
-│   └── seed.sql                      # Tracks, Rubrics, Admin, Judge, and Team Seed
-│
-├── .env.example                      # Environment template
-├── .gitignore                        # Exhaustive Git ignore definitions
-├── next.config.mjs
-└── package.json
+├── .gitignore                        # Universal Git ignore rules
+├── .env.example                      # Environment variables template
+└── package.json                      # Monorepo scripts root
 ```
 
 ---
@@ -102,12 +98,3 @@ The platform enforces strict role-based access control across 3 clearance tiers:
 | **Tier 1 (Operative)** | `team` | `/team/*`, `/missions`, `/leaderboard`, `/rules` | Submit blueprints, view live scores & rubric breakdown, inspect squad dossier |
 | **Tier 2 (Syndicate)** | `judge` | `/judge/*`, `/missions`, `/leaderboard` | Inspect assigned submissions, grade criteria via dynamic sliders, save drafts, lock marks |
 | **Tier 3 (Root Command)** | `admin` | `/admin/*`, All routes | Full CRUD over teams/judges, calibrate rubrics, broadcast alerts, toggle score visibility |
-
----
-
-## 3. Authoritative Scoring & Aggregation Flow
-
-1. **Criterion Level**: Each criterion in the active rubric is assigned a score bounded by $[0, \text{max\_marks}]$ with optional qualitative notes.
-2. **Evaluation Level**: Computed either as an arithmetic sum, simple average, or weighted average according to the active rubric formula.
-3. **Team Aggregate Level**: All completed evaluations from assigned judges are aggregated. Outlier detection warns administrators if judge scores diverge significantly ($> 12\text{ pts}$).
-4. **Leaderboard**: Automatically ranks active squads with tie-breaking rules based on prototype execution.

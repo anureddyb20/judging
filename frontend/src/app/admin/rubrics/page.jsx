@@ -22,7 +22,8 @@ export default function AdminRubricsPage() {
     addRubricCriterion,
     updateRubricCriterion,
     deleteRubricCriterion,
-    setScoringMethod
+    setScoringMethod,
+    confirmAction
   } = useDataStore();
 
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
@@ -212,9 +213,13 @@ export default function AdminRubricsPage() {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Remove criterion "${c.name}"?`)) {
-                          deleteRubricCriterion(activeRubric.id, c.id);
-                        }
+                        confirmAction({
+                          title: 'Delete Criterion',
+                          message: `Are you sure you want to remove criterion "${c.name}" (${c.max_marks} pts)? All score calculations will be recalculated without this criterion.`,
+                          confirmText: 'Delete Criterion',
+                          isDestructive: true,
+                          onConfirm: () => deleteRubricCriterion(activeRubric.id, c.id)
+                        });
                       }}
                       className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition-colors"
                       title="Delete Criterion"

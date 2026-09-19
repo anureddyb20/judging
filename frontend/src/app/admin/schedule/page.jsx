@@ -22,7 +22,8 @@ export default function AdminSchedulePage() {
     addSchedulePhase,
     updateSchedulePhase,
     togglePhaseStatus,
-    deleteSchedulePhase
+    deleteSchedulePhase,
+    confirmAction
   } = useDataStore();
 
   // Modal State
@@ -201,9 +202,13 @@ export default function AdminSchedulePage() {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm(`Remove phase "${phase.phase_name}"?`)) {
-                      deleteSchedulePhase(phase.id);
-                    }
+                    confirmAction({
+                      title: 'Delete Timeline Phase',
+                      message: `Are you sure you want to remove phase "${phase.phase_name}" (${phase.time_slot}) from the event schedule?`,
+                      confirmText: 'Delete Phase',
+                      isDestructive: true,
+                      onConfirm: () => deleteSchedulePhase(phase.id)
+                    });
                   }}
                   className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition-colors"
                   title="Delete Phase"

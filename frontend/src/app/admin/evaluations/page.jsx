@@ -22,7 +22,8 @@ export default function AdminEvaluationsPage() {
     teams,
     rubrics,
     overrideEvaluationScore,
-    deleteEvaluation
+    deleteEvaluation,
+    confirmAction
   } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,9 +215,13 @@ export default function AdminEvaluationsPage() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Remove this evaluation record for ${team?.name}?`)) {
-                              deleteEvaluation(ev.id);
-                            }
+                            confirmAction({
+                              title: 'Remove Evaluation Record',
+                              message: `Are you sure you want to delete the evaluation scorecard for "${team?.name || 'this team'}" submitted by ${judge?.name || 'Judge'}? This score will be removed from leaderboard averages.`,
+                              confirmText: 'Delete Scorecard',
+                              isDestructive: true,
+                              onConfirm: () => deleteEvaluation(ev.id)
+                            });
                           }}
                           className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition-colors"
                           title="Delete Evaluation"

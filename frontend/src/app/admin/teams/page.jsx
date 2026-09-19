@@ -28,7 +28,8 @@ export default function AdminTeamsPage() {
     updateTeam,
     deleteTeam,
     updateTeamCheckIn,
-    updateTeamPitchStatus
+    updateTeamPitchStatus,
+    confirmAction
   } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -328,9 +329,13 @@ export default function AdminTeamsPage() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Are you sure you want to remove ${team.name}?`)) {
-                              deleteTeam(team.id);
-                            }
+                            confirmAction({
+                              title: 'Remove Team',
+                              message: `Are you sure you want to remove "${team.name}" (${team.team_code})? All associated assignments and evaluation scorecards will be permanently unlinked.`,
+                              confirmText: 'Delete Team',
+                              isDestructive: true,
+                              onConfirm: () => deleteTeam(team.id)
+                            });
                           }}
                           className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition-colors"
                           title="Delete Team"

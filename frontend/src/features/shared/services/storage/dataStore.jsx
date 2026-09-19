@@ -16,6 +16,7 @@ import {
 } from '@/features/shared/constants/mockData';
 import { calculateEvaluationScore } from '@/features/shared/services/scoring/scoringEngine';
 import { supabase, isSupabaseConfigured } from '@/features/shared/services/api/supabaseClient';
+import { AlertTriangle, HelpCircle, X } from 'lucide-react';
 
 const DataStoreContext = createContext(null);
 
@@ -41,6 +42,31 @@ export function DataStoreProvider({ children }) {
   const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
 
   const [toastMessage, setToastMessage] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const confirmAction = useCallback(({
+    title = 'Confirm Action',
+    message = 'Are you sure you want to proceed?',
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    isDestructive = true,
+    onConfirm
+  }) => {
+    setConfirmDialog({
+      title,
+      message,
+      confirmText,
+      cancelText,
+      isDestructive,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        if (onConfirm) onConfirm();
+      },
+      onCancel: () => {
+        setConfirmDialog(null);
+      }
+    });
+  }, []);
 
   // Hydrate Store from localStorage
   useEffect(() => {
@@ -538,7 +564,8 @@ export function DataStoreProvider({ children }) {
     togglePhaseStatus,
     deleteSchedulePhase,
     resetToDefaultData,
-    showToast
+    showToast,
+    confirmAction
   };
 
   return (
@@ -551,6 +578,57 @@ export function DataStoreProvider({ children }) {
             toastMessage.type === 'success' ? 'bg-emerald-400' : toastMessage.type === 'error' ? 'bg-rose-400' : 'bg-indigo-400'
           }`} />
           <span className="font-sans text-xs font-semibold">{toastMessage.message}</span>
+        </div>
+      )}
+
+      {/* Global Custom Confirmation Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+          <div className="clean-card w-full max-w-md bg-slate-900 border border-white/15 p-6 space-y-4 shadow-2xl rounded-2xl animate-scale-up">
+            <div className="flex items-start gap-3.5">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                confirmDialog.isDestructive
+                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+              }`}>
+                {confirmDialog.isDestructive ? (
+                  <AlertTriangle className="w-5 h-5 text-rose-400" />
+                ) : (
+                  <HelpCircle className="w-5 h-5 text-indigo-400" />
+                )}
+              </div>
+
+              <div className="space-y-1 pt-0.5">
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  {confirmDialog.title}
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {confirmDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={confirmDialog.onCancel}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all border border-white/10"
+              >
+                {confirmDialog.cancelText}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDialog.onConfirm}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all shadow-md ${
+                  confirmDialog.isDestructive
+                    ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30'
+                    : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                }`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </DataStoreContext.Provider>

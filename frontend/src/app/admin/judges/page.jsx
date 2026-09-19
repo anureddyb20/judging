@@ -26,7 +26,8 @@ export default function AdminJudgesPage() {
     addJudge,
     updateJudge,
     deleteJudge,
-    toggleJudgeActive
+    toggleJudgeActive,
+    confirmAction
   } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -270,9 +271,13 @@ export default function AdminJudgesPage() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Are you sure you want to remove ${judge.name}? All assigned teams will be unlinked.`)) {
-                              deleteJudge(judge.id);
-                            }
+                            confirmAction({
+                              title: 'Remove Judge',
+                              message: `Are you sure you want to remove "${judge.name}"? All assigned teams will be unlinked.`,
+                              confirmText: 'Remove Judge',
+                              isDestructive: true,
+                              onConfirm: () => deleteJudge(judge.id)
+                            });
                           }}
                           className="p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition-colors"
                           title="Remove Judge"

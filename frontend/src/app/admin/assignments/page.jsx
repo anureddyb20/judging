@@ -23,7 +23,8 @@ export default function AdminAssignmentsPage() {
     assignJudgeToTeam,
     removeJudgeAssignment,
     autoAssignJudges,
-    clearAllAssignments
+    clearAllAssignments,
+    confirmAction
   } = useDataStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,9 +87,13 @@ export default function AdminAssignmentsPage() {
 
           <button
             onClick={() => {
-              if (confirm('Are you sure you want to clear all existing assignments?')) {
-                clearAllAssignments();
-              }
+              confirmAction({
+                title: 'Reset Assignments Grid',
+                message: 'Are you sure you want to clear all judge assignments? All current team-to-judge links will be removed.',
+                confirmText: 'Clear All',
+                isDestructive: true,
+                onConfirm: () => clearAllAssignments()
+              });
             }}
             className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 text-rose-400 hover:text-rose-300"
           >

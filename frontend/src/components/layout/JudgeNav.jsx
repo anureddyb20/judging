@@ -8,6 +8,9 @@ import {
   Users,
   Award,
   Clock,
+  Timer,
+  Calendar,
+  Sliders,
   LogOut,
   MapPin,
   ExternalLink,
@@ -16,7 +19,10 @@ import {
 
 const JUDGE_NAV_ITEMS = [
   { name: 'Assigned Teams', href: '/judge/dashboard', icon: Users },
-  { name: 'Evaluation Ledger', href: '/judge/history', icon: Clock }
+  { name: 'Pitch Timer', href: '/judge/timer', icon: Timer },
+  { name: 'Room Schedule', href: '/judge/schedule', icon: Calendar },
+  { name: 'Evaluation Ledger', href: '/judge/history', icon: Award },
+  { name: 'Rubric Guide', href: '/judge/rubrics', icon: Sliders }
 ];
 
 export function JudgeNav() {

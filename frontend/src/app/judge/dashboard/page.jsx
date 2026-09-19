@@ -18,7 +18,9 @@ import {
   Radio,
   MapPin,
   Calendar,
-  Play
+  Play,
+  Timer,
+  Sliders
 } from 'lucide-react';
 import TeamDossierModal from '@/components/ui/TeamDossierModal';
 import { PitchTimer } from '@/components/judge/PitchTimer';
@@ -120,6 +122,61 @@ export default function JudgeDashboard() {
             <div className="text-xl font-bold text-emerald-400">{completedCount}</div>
           </div>
         </div>
+      </div>
+
+      {/* Evaluator Tools Launchpad */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link
+          href="/judge/timer"
+          className="clean-card p-3.5 bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-indigo-500/40 transition-all flex items-center gap-3 group shadow-sm"
+        >
+          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform shrink-0">
+            <Timer className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">Pitch Timer</div>
+            <div className="text-[10px] font-mono text-slate-400">5m Pitch + 3m Q&A</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/judge/schedule"
+          className="clean-card p-3.5 bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-indigo-500/40 transition-all flex items-center gap-3 group shadow-sm"
+        >
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Room Schedule</div>
+            <div className="text-[10px] font-mono text-slate-400">Presentation Order</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/judge/history"
+          className="clean-card p-3.5 bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-indigo-500/40 transition-all flex items-center gap-3 group shadow-sm"
+        >
+          <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-transform shrink-0">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white group-hover:text-teal-300 transition-colors">Evaluation Ledger</div>
+            <div className="text-[10px] font-mono text-slate-400">My Submitted Marks</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/judge/rubrics"
+          className="clean-card p-3.5 bg-slate-900 hover:bg-slate-800/80 border border-white/10 hover:border-indigo-500/40 transition-all flex items-center gap-3 group shadow-sm"
+        >
+          <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+            <Sliders className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">Rubric Guide</div>
+            <div className="text-[10px] font-mono text-slate-400">Benchmark Presets</div>
+          </div>
+        </Link>
       </div>
 
       {/* Feature 7 & Feature 1: Live Room Schedule & Presenting Now Banner */}

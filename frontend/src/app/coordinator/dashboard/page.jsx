@@ -14,10 +14,13 @@ import {
   Award,
   Search,
   Check,
-  X
+  X,
+  Info
 } from 'lucide-react';
+import TeamDossierModal from '@/components/ui/TeamDossierModal';
 
 export default function CoordinatorDashboard() {
+  const [activeModalTeam, setActiveModalTeam] = useState(null);
   const { 
     currentUser, 
     teams = [], 
@@ -186,12 +189,20 @@ export default function CoordinatorDashboard() {
                         <div className="text-[11px] text-slate-400">{team.room}</div>
                       </td>
 
-                      {/* Team Name */}
+                      {/* Team Info */}
                       <td className="p-3.5">
-                        <div className="font-bold text-white text-sm">{team.name}</div>
-                        <div className="text-[11px] font-mono text-indigo-400">{team.team_code}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          {team.members?.map(m => m.name).join(', ')}
+                        <div 
+                          onClick={() => setActiveModalTeam(team)}
+                          className="font-bold text-white text-sm hover:text-indigo-300 cursor-pointer flex items-center gap-1.5 transition-colors"
+                          title="Click to view full team dossier"
+                        >
+                          <span>{team.name}</span>
+                          <Info className="w-3.5 h-3.5 text-indigo-400" />
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span className="text-indigo-400 font-bold">{team.team_code}</span>
+                          <span>·</span>
+                          <span>{team.room}</span>
                         </div>
                       </td>
 
@@ -286,6 +297,13 @@ export default function CoordinatorDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Complete Team Dossier Modal */}
+      <TeamDossierModal
+        team={activeModalTeam}
+        isOpen={!!activeModalTeam}
+        onClose={() => setActiveModalTeam(null)}
+      />
     </div>
   );
 }

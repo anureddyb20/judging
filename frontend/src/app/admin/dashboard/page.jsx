@@ -1,26 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useDataStore } from '@/features/shared/services/storage/dataStore';
 import { computeAdminTelemetry, computeLeaderboard } from '@/features/shared/services/scoring/scoringEngine';
 import { 
   Users, 
   UserCheck, 
-  FileText, 
-  Award, 
   Activity, 
-  Sliders, 
   Download, 
-  ArrowRight, 
-  CheckCircle2,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
+  Sliders, 
+  Lock, 
+  Unlock, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  Award,
+  Clock,
+  Layers,
   Sparkles,
-  ClipboardList
+  ExternalLink
 } from 'lucide-react';
+import TeamDossierModal from '@/components/ui/TeamDossierModal';
 
 export default function AdminDashboard() {
   const { 
@@ -39,6 +40,7 @@ export default function AdminDashboard() {
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
   const rankedLeaderboard = computeLeaderboard(teams, evaluations, activeRubric?.criteria, eventSettings.scoring_method);
   const activeJudges = judges.filter(j => j.is_active);
+  const [activeModalTeam, setActiveModalTeam] = useState(null);
 
   // Export Master Scorecard CSV
   const handleExportCSV = () => {
@@ -241,12 +243,20 @@ export default function AdminDashboard() {
               {teams.map(team => {
                 const teamLeaderboard = rankedLeaderboard.find(t => t.id === team.id);
                 return (
-                  <tr key={team.id} className="hover:bg-white/[0.02]">
+                  <tr 
+                    key={team.id} 
+                    onClick={() => setActiveModalTeam(team)}
+                    className="hover:bg-indigo-950/30 transition-colors cursor-pointer group"
+                    title="Click to view complete team dossier, problem statement, members, and marks"
+                  >
                     <td className="p-3.5 font-mono font-bold text-slate-400">
                       #{teamLeaderboard?.rank || '-'}
                     </td>
                     <td className="p-3.5">
-                      <div className="font-bold text-white text-sm">{team.name}</div>
+                      <div className="font-bold text-white text-sm group-hover:text-indigo-300 transition-colors flex items-center gap-1.5">
+                        <span>{team.name}</span>
+                        <span className="text-[10px] text-indigo-400 font-normal underline">view</span>
+                      </div>
                       <div className="text-[11px] font-mono text-slate-400">{team.team_code} · {team.room}</div>
                     </td>
 
@@ -301,6 +311,13 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Complete Team Dossier Modal */}
+      <TeamDossierModal
+        team={activeModalTeam}
+        isOpen={!!activeModalTeam}
+        onClose={() => setActiveModalTeam(null)}
+      />
     </div>
   );
 }

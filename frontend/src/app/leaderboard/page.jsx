@@ -11,8 +11,10 @@ import {
   ChevronUp, 
   Lock, 
   Medal,
-  CheckCircle2
+  CheckCircle2,
+  Info
 } from 'lucide-react';
+import TeamDossierModal from '@/components/ui/TeamDossierModal';
 
 export default function LeaderboardPage() {
   const { teams, evaluations, rubrics, missions, eventSettings } = useDataStore();
@@ -20,6 +22,7 @@ export default function LeaderboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMission, setSelectedMission] = useState('ALL');
   const [expandedTeamId, setExpandedTeamId] = useState(null);
+  const [activeModalTeam, setActiveModalTeam] = useState(null);
 
   const activeRubric = rubrics.find(r => r.is_active) || rubrics[0];
   const allRanked = computeLeaderboard(teams, evaluations, activeRubric?.criteria, eventSettings.scoring_method);
@@ -217,25 +220,40 @@ export default function LeaderboardPage() {
                             #{team.rank}
                           </span>
                         </td>
+                        {/* Team Name */}
                         <td className="p-4">
-                          <div className="font-bold text-white text-sm">
-                            {team.name}
+                          <div 
+                            onClick={() => {
+                              const fullTeam = teams.find(t => t.id === team.id) || team;
+                              setActiveModalTeam(fullTeam);
+                            }}
+                            className="font-bold text-white hover:text-indigo-300 cursor-pointer flex items-center gap-1.5 transition-colors"
+                            title="Click to view full team dossier, problem statement, members, and marks"
+                          >
+                            <span>{team.name}</span>
+                            <Info className="w-3.5 h-3.5 text-indigo-400" />
                           </div>
-                          <div className="text-[11px] font-mono text-indigo-400">
-                            {team.team_code} · {team.room}
+                          <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span className="text-indigo-400 font-bold">{team.team_code}</span>
+                            <span>·</span>
+                            <span>{team.room}</span>
                           </div>
                         </td>
+
+                        {/* Track */}
                         <td className="p-4">
                           <span className="badge-indigo">
-                            {mission?.title || 'Track'}
+                            {mission?.title || 'Open Track'}
                           </span>
                         </td>
-                        <td className="p-4 text-center">
-                          <span className="px-2.5 py-1 rounded bg-slate-900 border border-white/5 text-slate-300 font-mono">
-                            {team.evaluationsCount} Judge{team.evaluationsCount !== 1 ? 's' : ''}
-                          </span>
+
+                        {/* Members */}
+                        <td className="p-4 text-slate-300">
+                          {team.members?.map(m => m.name).join(', ')}
                         </td>
-                        <td className="p-4 text-right font-mono font-bold text-sm">
+
+                        {/* Score */}
+                        <td className="p-4 text-right font-mono font-bold text-base">
                           {eventSettings.show_live_score ? (
                             <span className="text-white">
                               {team.score.toFixed(1)}
@@ -298,6 +316,13 @@ export default function LeaderboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Complete Team Dossier Modal */}
+      <TeamDossierModal
+        team={activeModalTeam}
+        isOpen={!!activeModalTeam}
+        onClose={() => setActiveModalTeam(null)}
+      />
     </div>
   );
 }

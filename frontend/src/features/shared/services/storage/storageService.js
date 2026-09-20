@@ -1,34 +1,27 @@
 // ==============================================================================
-// VICEVERSE STORAGE SERVICE (localStorage wrapper with validation)
+// STORAGE SERVICE (localStorage wrapper with validation)
 // ==============================================================================
 
 import { useState } from 'react';
 
-const STORAGE_PREFIX = 'viceverse_';
+const STORAGE_PREFIX = 'club_ideathon_';
 
-interface StorageOptions {
-  serialize?: (value: unknown) => string;
-  deserialize?: (value: string) => unknown;
-  version?: number;
-}
-
-const defaultOptions: StorageOptions = {
+const defaultOptions = {
   serialize: JSON.stringify,
   deserialize: JSON.parse,
   version: 1,
 };
 
-function getKey(key: string): string {
+function getKey(key) {
   return `${STORAGE_PREFIX}${key}`;
 }
 
-function migrateData<T>(key: string, data: T, currentVersion: number): T {
-  // Add migration logic here when version changes
+function migrateData(key, data, currentVersion) {
   return data;
 }
 
 export const storageService = {
-  get<T>(key: string, fallback?: T, options: StorageOptions = {}): T | undefined {
+  get(key, fallback, options = {}) {
     if (typeof window === 'undefined') return fallback;
     
     const opts = { ...defaultOptions, ...options };
@@ -38,7 +31,7 @@ export const storageService = {
       const item = localStorage.getItem(fullKey);
       if (item === null) return fallback;
       
-      const parsed = opts.deserialize!(item);
+      const parsed = opts.deserialize(item);
       return migrateData(key, parsed, opts.version || 1);
     } catch (error) {
       console.warn(`Storage read error for key "${key}":`, error);
@@ -46,14 +39,14 @@ export const storageService = {
     }
   },
 
-  set<T>(key: string, value: T, options: StorageOptions = {}): boolean {
+  set(key, value, options = {}) {
     if (typeof window === 'undefined') return false;
     
     const opts = { ...defaultOptions, ...options };
     const fullKey = getKey(key);
     
     try {
-      const serialized = opts.serialize!({
+      const serialized = opts.serialize({
         data: value,
         version: opts.version || 1,
         timestamp: Date.now(),
@@ -61,93 +54,78 @@ export const storageService = {
       localStorage.setItem(fullKey, serialized);
       return true;
     } catch (error) {
-      console.error(`Storage write error for key "${key}":`, error);
+      console.warn(`Storage write error for key "${key}":`, error);
       return false;
     }
   },
 
-  remove(key: string): boolean {
+  remove(key) {
     if (typeof window === 'undefined') return false;
-    
     try {
       localStorage.removeItem(getKey(key));
       return true;
-    } catch (error) {
-      console.warn(`Storage remove error for key "${key}":`, error);
+    } catch {
       return false;
     }
   },
 
-  clear(): boolean {
-    if (typeof window === 'undefined') return false;
-    
+  clear() {
+    if (typeof window === 'undefined') return;
     try {
-      const keysToRemove: string[] = [];
+      const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key?.startsWith(STORAGE_PREFIX)) {
+        if (key && key.startsWith(STORAGE_PREFIX)) {
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      return true;
+      keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch (error) {
-      console.error('Storage clear error:', error);
-      return false;
+      console.warn('Storage clear error:', error);
     }
   },
 
-  getAllKeys(): string[] {
+  keys() {
     if (typeof window === 'undefined') return [];
-    
-    const keys: string[] = [];
+    const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.startsWith(STORAGE_PREFIX)) {
-        keys.push(key.slice(STORAGE_PREFIX.length));
+      if (key && key.startsWith(STORAGE_PREFIX)) {
+        keys.push(key.replace(STORAGE_PREFIX, ''));
       }
     }
     return keys;
   },
 
-  // Specialized methods for app data
-  getAuthUser(): ReturnType<typeof this.get> {
-    return this.get('auth_user');
-  },
-
-  setAuthUser(user: unknown): boolean {
-    return this.set('auth_user', user);
-  },
-
-  clearAuthUser(): boolean {
-    return this.remove('auth_user');
-  },
-
-  getAppState(): ReturnType<typeof this.get> {
-    return this.get('app_state');
-  },
-
-  setAppState(state: unknown): boolean {
-    return this.set('app_state', state);
+  has(key) {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(getKey(key)) !== null;
   },
 };
 
-// React hook for reactive localStorage
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') return initialValue;
-    return storageService.get(key, initialValue);
+export function useLocalStorage(key, initialValue, options = {}) {
+  const [storedValue, setStoredValue] = useState(() => {
+    return storageService.get(key, initialValue, options);
   });
 
-  const setValue = (value: T | ((val: T) => T)) => {
+  const setValue = (value) => {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      storageService.set(key, valueToStore);
+      storageService.set(key, valueToStore, options);
     } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
+      console.warn(`Error setting localStorage key "${key}":`, error);
     }
   };
 
-  return [storedValue, setValue] as const;
+  const removeValue = () => {
+    try {
+      storageService.remove(key);
+      setStoredValue(initialValue);
+    } catch (error) {
+      console.warn(`Error removing localStorage key "${key}":`, error);
+    }
+  };
+
+  return [storedValue, setValue, removeValue];
 }

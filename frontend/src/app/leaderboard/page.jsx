@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useDataStore } from '@/lib/dataStore';
-import { computeLeaderboard } from '@/lib/scoring';
+import { useDataStore } from '@/features/shared/services/storage/dataStore';
+import { computeLeaderboard } from '@/features/shared/services/scoring/scoringEngine';
 import { 
   Trophy, 
   Search, 

@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useDataStore } from '@/lib/dataStore';
-import { aggregateTeamScores, computeLeaderboard } from '@/lib/scoring';
+import { useDataStore } from '@/features/shared/services/storage/dataStore';
+import { aggregateTeamScores, computeLeaderboard } from '@/features/shared/services/scoring/scoringEngine';
 import { 
   Trophy, 
   UploadCloud, 

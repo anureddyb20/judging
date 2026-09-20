@@ -18,8 +18,8 @@ import {
   Compass,
   FileSpreadsheet
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
-import { computeLeaderboard } from '@/lib/scoring';
+import { useDataStore } from '@/features/shared/services/storage/dataStore';
+import { computeLeaderboard } from '@/features/shared/services/scoring/scoringEngine';
 
 export default function LandingLaunchpad() {
   const { 

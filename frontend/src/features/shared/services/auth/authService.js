@@ -1,32 +1,22 @@
 // ==============================================================================
-// VICEVERSE AUTH SERVICE
+// AUTH SERVICE
 // ==============================================================================
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Profile, UserRole } from '@/features/shared/types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface AuthContextType {
-  user: Profile | null;
-  loading: boolean;
-  login: (role: UserRole, identifier?: string) => Promise<Profile | null>;
-  logout: () => void;
-  hasRole: (role: UserRole | UserRole[]) => boolean;
-}
+const AuthContext = createContext(null);
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-const AUTH_STORAGE_KEY = 'viceverse_auth_user';
-const DEFAULT_ADMIN: Profile = {
+const AUTH_STORAGE_KEY = 'club_ideathon_auth_user';
+const DEFAULT_ADMIN = {
   id: 'p_admin',
-  email: 'admin@viceverse.com',
+  email: 'lead@club.edu',
   role: 'admin',
-  full_name: 'COMMANDER VEX',
-  avatar_url: '/assets/avatars/admin.png',
+  full_name: 'Lead Organizer (Me)',
   created_at: new Date().toISOString(),
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(null);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,47 +31,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (role: UserRole, identifier?: string): Promise<Profile | null> => {
-    // In production, this would call Supabase Auth or your auth provider
-    // For now, mock login based on role and identifier
-    let profile: Profile | null = null;
+  const login = async (role, identifier) => {
+    let profile = null;
 
-    const mockProfiles: Record<string, Profile> = {
+    const mockProfiles = {
       admin: DEFAULT_ADMIN,
+      coordinator: {
+        id: 'p_coord1',
+        email: 'crd01@club.edu',
+        role: 'coordinator',
+        full_name: 'Ananya Sharma (Club Lead)',
+        coordinator_id: 'crd_1',
+        assigned_room: 'Room Alpha (Lab 101)',
+        created_at: new Date().toISOString(),
+      },
       judge: {
         id: 'p_judge1',
-        email: 'judge1@viceverse.com',
+        email: 'jdg01@university.edu',
         role: 'judge',
-        full_name: 'DR. ELENA ROSTOVA',
-        avatar_url: '/assets/avatars/judge1.png',
+        full_name: 'Dr. Ramesh Kumar',
+        judge_id: 'jdg_1',
         created_at: new Date().toISOString(),
       },
       team: {
-        id: 'p_team14',
-        email: 'team14@viceverse.com',
+        id: 'p_team1',
+        email: 'team_trk01@club.edu',
         role: 'team',
-        full_name: 'SYNTHETIC VANGUARD',
-        team_code: 'VV-014',
-        team_id: 't14',
-        created_at: new Date().toISOString(),
-      },
-      coordinator: {
-        id: 'p_coordinator',
-        email: 'coordinator@viceverse.com',
-        role: 'coordinator',
-        full_name: 'CLUB COORDINATOR',
+        full_name: 'NeuralPulse AI',
+        team_id: 't_1',
+        team_code: 'TRK-01',
         created_at: new Date().toISOString(),
       },
     };
 
-    profile = mockProfiles[role] || mockProfiles.team;
-    
-    if (identifier && role === 'judge') {
-      // Could look up specific judge
-    }
-    if (identifier && role === 'team') {
-      // Could look up specific team
-    }
+    profile = mockProfiles[role] || null;
 
     if (profile) {
       setUser(profile);
@@ -96,10 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   };
 
-  const hasRole = (role: UserRole | UserRole[]): boolean => {
+  const hasRole = (role) => {
     if (!user) return false;
-    const roles = Array.isArray(role) ? role : [role];
-    return roles.includes(user.role);
+    if (Array.isArray(role)) {
+      return role.includes(user.role);
+    }
+    return user.role === role;
   };
 
   return (
@@ -117,13 +102,8 @@ export function useAuth() {
   return context;
 }
 
-export const authService = {
-  getCurrentUser: () => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  },
-  isAuthenticated: () => !!localStorage.getItem(AUTH_STORAGE_KEY),
-  getToken: () => localStorage.getItem('viceverse_auth_token'),
-  setToken: (token: string) => localStorage.setItem('viceverse_auth_token', token),
-  clearToken: () => localStorage.removeItem('viceverse_auth_token'),
+export const tokenStorage = {
+  getToken: () => localStorage.getItem('club_ideathon_auth_token'),
+  setToken: (token) => localStorage.setItem('club_ideathon_auth_token', token),
+  removeToken: () => localStorage.removeItem('club_ideathon_auth_token'),
 };
